@@ -25,4 +25,4 @@ go.work.sum
 .env
 
 # kubebuilder binaries
-bin/
+# bin/
