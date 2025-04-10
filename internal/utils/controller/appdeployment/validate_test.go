@@ -218,7 +218,7 @@ func TestValidate(t *testing.T) {
 						PodFailurePolicy: ptr.Of(batchv1.PodFailurePolicy{
 							Rules: []batchv1.PodFailurePolicyRule{
 								{
-									Action: batchv1.PodFailurePolicyAction(batchv1.PodFailurePolicyActionFailJob),
+									Action: batchv1.PodFailurePolicyActionFailJob,
 								},
 							},
 						}),
