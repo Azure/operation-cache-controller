@@ -25,10 +25,34 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	appv1 "github.com/Azure/operation-cache-controller/api/v1"
 )
+
+func newTestJobSpec() batchv1.JobSpec {
+	return batchv1.JobSpec{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "test-container",
+						Image: "test-image",
+						Command: []string{
+							"echo",
+							"hello",
+						},
+						Args: []string{
+							"world",
+						},
+					},
+				},
+			},
+		},
+	}
+}
 
 var _ = Describe("AppDeployment Controller", func() {
 	Context("When reconciling a resource", func() {
@@ -40,7 +64,13 @@ var _ = Describe("AppDeployment Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		appdeployment := &appv1.AppDeployment{}
+		appdeployment := &appv1.AppDeployment{
+			Spec: appv1.AppDeploymentSpec{
+				OpId:      "test-op-id",
+				Provision: newTestJobSpec(),
+				Teardown:  newTestJobSpec(),
+			},
+		}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind AppDeployment")
@@ -51,8 +81,10 @@ var _ = Describe("AppDeployment Controller", func() {
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
-				}
+					Spec: appv1.AppDeploymentSpec{
+						Provision: newTestJobSpec(),
+						Teardown:  newTestJobSpec(),
+					}}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 		})
