@@ -32,7 +32,10 @@ jobs:
 
       - name: Build and push Docker image
         run: |
+          set -e
+          # Convert repository name to lowercase
+          export IMAGE_NAME=$(echo ${{ env.IMAGE_NAME }} | tr '[:upper:]' '[:lower:]')
           # Set the image name with registry and tag
-          export IMG=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+          export IMG=${{ env.REGISTRY }}/$IMAGE_NAME:${{ github.ref_name }}
           # Build and push using make target
-          make docker-buildx 
+          make docker-buildx
