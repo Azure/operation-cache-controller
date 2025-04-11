@@ -22,6 +22,15 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the {{ .ProjectName }} itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- requirement_admin_role.yaml
+- requirement_editor_role.yaml
+- requirement_viewer_role.yaml
+- cache_admin_role.yaml
+- cache_editor_role.yaml
+- cache_viewer_role.yaml
+- operation_admin_role.yaml
+- operation_editor_role.yaml
+- operation_viewer_role.yaml
 - appdeployment_admin_role.yaml
 - appdeployment_editor_role.yaml
 - appdeployment_viewer_role.yaml

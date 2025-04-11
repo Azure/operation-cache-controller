@@ -3,6 +3,9 @@
 # It should be run by config/default
 resources:
 - bases/app.github.com_appdeployments.yaml
+- bases/app.github.com_operations.yaml
+- bases/app.github.com_caches.yaml
+- bases/app.github.com_requirements.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
