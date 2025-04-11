@@ -19,18 +19,24 @@ package controller
 import (
 	"context"
 
+	batchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
 // OperationReconciler reconciles a Operation object
 type OperationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=app.github.com,resources=operations,verbs=get;list;watch;create;update;patch;delete
@@ -47,17 +53,68 @@ type OperationReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
 func (r *OperationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	operation := &appsv1.Operation{}
+	if err := r.Get(ctx, req.NamespacedName, operation); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	adapter := NewOperationAdapter(ctx, operation, logger, r.Client, r.recorder)
+	return r.ReconcileHandler(ctx, adapter)
+}
+
+func (r *OperationReconciler) ReconcileHandler(ctx context.Context, adapter OperationAdapterInterface) (ctrl.Result, error) {
+	operations := []reconciler.ReconcileOperation{
+		adapter.EnsureFinalizer,
+		adapter.EnsureFinalizerRemoved,
+		adapter.EnsureNotExpired,
+		adapter.EnsureAllAppsAreReady,
+		adapter.EnsureAllAppsAreDeleted,
+	}
+
+	for _, operation := range operations {
+		result, err := operation(ctx)
+		if err != nil || result.RequeueRequest {
+			return ctrl.Result{RequeueAfter: reconciler.DefaultRequeueDelay}, err
+		}
+		if result.CancelRequest {
+			return ctrl.Result{}, nil
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
 
+var operationOwnerKey = ".operation.metadata.controller"
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *OperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.AppDeployment{}, operationOwnerKey,
+		func(rawObj client.Object) []string {
+			// grab the AppDeployment object, extract the owner
+			adp := rawObj.(*appsv1.AppDeployment)
+			owner := metav1.GetControllerOf(adp)
+			if owner == nil {
+				return nil
+			}
+			// Make sure the owner is a Operation object
+			if owner.APIVersion != appsv1.GroupVersion.String() || owner.Kind != "Operation" {
+				return nil
+			}
+			return []string{owner.Name}
+		}); err != nil {
+		return err
+	}
+
+	r.recorder = mgr.GetEventRecorderFor("Operation")
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appv1.Operation{}).
+		For(&appsv1.Operation{}).
+		Owns(&batchv1.Job{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 100,
+		}).
 		Named("operation").
 		Complete(r)
 }

@@ -17,29 +17,50 @@ limitations under the License.
 package v1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
+type ApplicationSpec struct {
+	Name      string          `json:"name"`
+	Provision batchv1.JobSpec `json:"provision"`
+	Teardown  batchv1.JobSpec `json:"teardown"`
+	// +kubebuilder:validation:Optional
+	Dependencies []string `json:"dependencies,omitempty"`
+}
+
 // OperationSpec defines the desired state of Operation.
 type OperationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Operation. Edit operation_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinItems=1
+	Applications []ApplicationSpec `json:"applications"`
+	// +kubebuilder:validation:optional
+	// +kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
+	ExpireAt string `json:"expireAt,omitempty"`
 }
 
 // OperationStatus defines the observed state of Operation.
 type OperationStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// Conditions is a list of conditions to describe the status of the deploy
+	Conditions  []metav1.Condition `json:"conditions"`
+	Phase       string             `json:"phase"`
+	CacheKey    string             `json:"cacheKey"`
+	OperationID string             `json:"operationId"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Key",type="string",JSONPath=`.status.cacheKey`
 
 // Operation is the Schema for the operations API.
 type Operation struct {
