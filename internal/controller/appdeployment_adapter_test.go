@@ -21,11 +21,13 @@ import (
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
+const testOpId = "test-op-id"
+
 var validAppDeployment = &appsv1.AppDeployment{
 	Spec: appsv1.AppDeploymentSpec{
 		Provision: newTestJobSpec(),
 		Teardown:  newTestJobSpec(),
-		OpId:      "test-op-id",
+		OpId:      testOpId,
 	},
 }
 
@@ -249,7 +251,7 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		appDeployment := validAppDeployment.DeepCopy()
 		appDeployment.Status.Phase = apdutil.PhasePending
-		appDeployment.Spec.OpId = "test-op-id"
+		appDeployment.Spec.OpId = testOpId
 		appDeployment.Spec.Dependencies = []string{
 			"test-app-1",
 		}
@@ -279,7 +281,7 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		appDeployment := validAppDeployment.DeepCopy()
 		appDeployment.Status.Phase = apdutil.PhasePending
-		appDeployment.Spec.OpId = "test-op-id"
+		appDeployment.Spec.OpId = testOpId
 		appDeployment.Spec.Dependencies = []string{
 			"test-app-1",
 		}
@@ -297,7 +299,7 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		appDeployment := validAppDeployment.DeepCopy()
 		appDeployment.Status.Phase = apdutil.PhasePending
-		appDeployment.Spec.OpId = "test-op-id"
+		appDeployment.Spec.OpId = testOpId
 		appDeployment.Spec.Dependencies = []string{
 			"test-app-1",
 		}
