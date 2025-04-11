@@ -17,7 +17,21 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Running Tests
+      - name: Running Tests with Coverage
         run: |
           go mod tidy
           make test
+
+      - name: check test coverage
+        if: github.ref == 'refs/heads/main'
+        uses: vladopajic/go-test-coverage@v2
+        with:
+          config: ./.github/.testcoverage.yml
+          git-branch: badges
+          git-token: ${{ github.ref_name == 'main' && secrets.GITHUB_TOKEN || '' }}
+
+      - name: Check test coverage
+        if: github.ref != 'refs/heads/main'
+        uses: vladopajic/go-test-coverage@v2
+        with:
+          config: ./.github/.testcoverage.yml
