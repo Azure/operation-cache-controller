@@ -209,6 +209,27 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "AppDeployment")
 		os.Exit(1)
 	}
+	if err = (&controller.OperationReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Operation")
+		os.Exit(1)
+	}
+	if err = (&controller.CacheReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Cache")
+		os.Exit(1)
+	}
+	if err = (&controller.RequirementReconciler{
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Requirement")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {

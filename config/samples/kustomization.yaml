@@ -1,4 +1,7 @@
 ## Append samples of your project ##
 resources:
 - app_v1_appdeployment.yaml
+- app_v1_operation.yaml
+- app_v1_cache.yaml
+- app_v1_requirement.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
