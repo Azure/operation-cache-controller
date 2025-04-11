@@ -8,6 +8,9 @@ rules:
   - app.github.com
   resources:
   - appdeployments
+  - caches
+  - operations
+  - requirements
   verbs:
   - create
   - delete
@@ -20,12 +23,18 @@ rules:
   - app.github.com
   resources:
   - appdeployments/finalizers
+  - caches/finalizers
+  - operations/finalizers
+  - requirements/finalizers
   verbs:
   - update
 - apiGroups:
   - app.github.com
   resources:
   - appdeployments/status
+  - caches/status
+  - operations/status
+  - requirements/status
   verbs:
   - get
   - patch
