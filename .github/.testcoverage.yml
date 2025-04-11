@@ -36,7 +36,7 @@ threshold:
 # Holds regexp rules which will exclude matched files or packages 
 # from coverage statistics.
 exclude:
-  Exclude files or packages matching their paths
+  # Exclude files or packages matching their paths
   paths:
     - \.mock\.$    # excludes all generated mock  files
     - ^api/v1      # exclude api/v1 
