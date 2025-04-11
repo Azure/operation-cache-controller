@@ -38,7 +38,7 @@ threshold:
 exclude:
   # Exclude files or packages matching their paths
   paths:
-    - \.mock\.    # excludes all generated mock files
+    - .*mock.*    # excludes all generated mock files
     - ^api/v1      # exclude api/v1 
     - ^test/       # exclude test files
     - ^cmd         # exclude cmd files
