@@ -28,14 +28,25 @@ type CacheSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Cache. Edit cache_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	OperationTemplate OperationSpec `json:"operationTemplate"`
+
+	// Strategy is the cache strategy
+	// +kubebuilder:validation:optional
+	Strategy string `json:"strategy,omitempty"`
+
+	// ExpireTime is the RFC3339-format time when the cache will be expired. If not set, the cache is never expired.
+	// +kubebuilder:validation:optional
+	// +kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
+	ExpireTime string `json:"expireTime,omitempty"`
 }
 
 // CacheStatus defines the observed state of Cache.
 type CacheStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	CacheKey        string   `json:"cacheKey"`
+	KeepAliveCount  int32    `json:"keepAlive"`
+	AvailableCaches []string `json:"availableCaches,omitempty"`
 }
 
 // +kubebuilder:object:root=true
