@@ -24,8 +24,9 @@ import (
 )
 
 var (
-	emptyRequirement = &appsv1.Requirement{}
-	validRequirement = &appsv1.Requirement{
+	testOperationName = "test-operation"
+	emptyRequirement  = &appsv1.Requirement{}
+	validRequirement  = &appsv1.Requirement{
 		Spec: appsv1.RequirementSpec{
 			ExpireAt: time.Now().Add(time.Hour).Format(time.RFC3339),
 			Template: appsv1.OperationSpec{
@@ -63,8 +64,8 @@ func TestNewRequirementAdapter(t *testing.T) {
 		mockRecorderCtrl := gomock.NewController(t)
 		mockRecorder := mockpkg.NewMockEventRecorder(mockRecorderCtrl)
 
-		requirment := emptyRequirement.DeepCopy()
-		adapter := NewRequirementAdapter(ctx, requirment, logger, mockClient, mockRecorder)
+		requirement := emptyRequirement.DeepCopy()
+		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 		require.NotNil(t, adapter)
 	})
 }
@@ -200,7 +201,7 @@ func TestRequirementAdapter_EnsureCacheExisted(t *testing.T) {
 	t.Run("happy path: continue processing when candidate operation exist", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
 		res, err := adapter.EnsureCacheExisted(ctx)
@@ -330,7 +331,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 	t.Run("happy path: continue processing when operation is already acquired", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
 		requirement.UID = "test-uid"
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		operation := validOperation.DeepCopy()
 		operation.Annotations = map[string]string{
@@ -362,7 +363,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 	t.Run("happy path: continue processing when operation is acquired but other requirement", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
 		requirement.UID = "test-uid"
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		operation := validOperation.DeepCopy()
 		operation.Annotations = map[string]string{
@@ -394,7 +395,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 	t.Run("happy path: continue processing when operation is not acquired, acquired it with success", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
 		requirement.UID = "test-uid"
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 		operation := validOperation.DeepCopy()
@@ -417,7 +418,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 	t.Run("sad path: failed to get operation", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
 		requirement.UID = "test-uid"
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
@@ -432,7 +433,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 	t.Run("sad path: when operation is not acquired, acquired it with failed", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
 		requirement.UID = "test-uid"
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 		operation := validOperation.DeepCopy()
@@ -475,7 +476,7 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 
 	t.Run("happy path: continue processing when in ready phase but cachekey is not changed", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.CacheKey = ctlutils.NewCacheKeyFromApplications(requirement.Spec.Template.Applications)
 		requirement.Status.Phase = rqutils.PhaseReady
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
@@ -487,7 +488,7 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 
 	t.Run("happy path: ready phase but cachekey is changed", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseReady
 		requirement.Status.CacheKey = "test-cache-key"
 		operaition := validOperation.DeepCopy()
@@ -507,7 +508,7 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 	})
 	t.Run("sad path: failed to get operation", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseReady
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
@@ -521,7 +522,7 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 
 	t.Run("happy path: continue processing when operation is not ready", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseOperating
 
 		operation := validOperation.DeepCopy()
@@ -542,7 +543,7 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 
 	t.Run("happy path: continue processing when operation is ready", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseOperating
 		operation := validOperation.DeepCopy()
 		operation.Status.Phase = oputils.PhaseReconciled
@@ -563,10 +564,10 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 
 	t.Run("happy path: operation not found, create one", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseOperating
 		scheme := runtime.NewScheme()
-		appsv1.AddToScheme(scheme)
+		_ = appsv1.AddToScheme(scheme)
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).Return(apierrors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Operation"}, "operation not found"))
@@ -581,11 +582,11 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 
 	t.Run("sad path: failed to create operation", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.Status.OperationName = "test-operation"
+		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseOperating
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 		schema := runtime.NewScheme()
-		appsv1.AddToScheme(schema)
+		_ = appsv1.AddToScheme(schema)
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).Return(assert.AnError)
 		mockClient.EXPECT().Scheme().Return(schema)
 		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(assert.AnError)
