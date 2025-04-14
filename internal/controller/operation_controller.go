@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 
-	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
@@ -111,7 +110,7 @@ func (r *OperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&appsv1.Operation{}).
-		Owns(&batchv1.Job{}).
+		Owns(&appsv1.AppDeployment{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 100,
 		}).

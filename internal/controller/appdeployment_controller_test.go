@@ -35,6 +35,7 @@ import (
 func newTestJobSpec() batchv1.JobSpec {
 	return batchv1.JobSpec{
 		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{},
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
 					{
