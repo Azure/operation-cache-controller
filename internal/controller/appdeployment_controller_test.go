@@ -190,7 +190,7 @@ var _ = Describe("AppDeployment Controller", func() {
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
 			})
-			Expect(errors.IsServiceUnavailable(err)).To(Equal(true), "expected error is ServiceUnavailable")
+			Expect(errors.IsServiceUnavailable(err)).To(BeTrue(), "expected error is ServiceUnavailable")
 		})
 	})
 })
