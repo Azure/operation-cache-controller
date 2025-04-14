@@ -28,12 +28,12 @@ type RequirementSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Required
 	Template OperationSpec `json:"template"`
-	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Required
 	EnableCache bool `json:"enableCache"`
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
 	ExpireAt string `json:"expireAt,omitempty"`
 }
 

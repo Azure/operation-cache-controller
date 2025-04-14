@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -297,6 +298,7 @@ func TestRequirementAdapter_EnsureCacheExisted(t *testing.T) {
 func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 	ctx := context.Background()
 	logger := log.FromContext(ctx)
+	testRequirementUID := types.UID("test-uid")
 
 	mockCtrl := gomock.NewController(t)
 	mockClient := mockpkg.NewMockClient(mockCtrl)
@@ -330,7 +332,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 
 	t.Run("happy path: continue processing when operation is already acquired", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.UID = "test-uid"
+		requirement.UID = testRequirementUID
 		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		operation := validOperation.DeepCopy()
@@ -362,7 +364,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 
 	t.Run("happy path: continue processing when operation is acquired but other requirement", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.UID = "test-uid"
+		requirement.UID = testRequirementUID
 		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		operation := validOperation.DeepCopy()
@@ -394,7 +396,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 
 	t.Run("happy path: continue processing when operation is not acquired, acquired it with success", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.UID = "test-uid"
+		requirement.UID = testRequirementUID
 		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
@@ -417,7 +419,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 
 	t.Run("sad path: failed to get operation", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.UID = "test-uid"
+		requirement.UID = testRequirementUID
 		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
@@ -432,7 +434,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 
 	t.Run("sad path: when operation is not acquired, acquired it with failed", func(t *testing.T) {
 		requirement := validRequirement.DeepCopy()
-		requirement.UID = "test-uid"
+		requirement.UID = testRequirementUID
 		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
