@@ -21,8 +21,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -30,6 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	ctrlmocks "github.com/Azure/operation-cache-controller/internal/controller/mocks"
+	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
+	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
 func newTestJobSpec() batchv1.JobSpec {
@@ -55,9 +61,35 @@ func newTestJobSpec() batchv1.JobSpec {
 }
 
 var _ = Describe("AppDeployment Controller", func() {
+	Context("When setupWithManager is called", func() {
+		It("Should setup the controller with the manager", func() {
+
+			// Create a new mock controller
+			mockCtrl := gomock.NewController(GinkgoT())
+			defer mockCtrl.Finish()
+
+			k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+				Scheme: scheme.Scheme,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			err = (&AppDeploymentReconciler{
+				Client:   k8sManager.GetClient(),
+				Scheme:   k8sManager.GetScheme(),
+				recorder: k8sManager.GetEventRecorderFor("appdeployment-controller"),
+			}).SetupWithManager(k8sManager)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 	Context("When reconciling a resource", func() {
 		const resourceName = "test-resource"
-
+		var (
+			mockRecorderCtrl *gomock.Controller
+			mockRecorder     *mockpkg.MockEventRecorder
+			mockAdapterCtrl  *gomock.Controller
+			mockAdapter      *ctrlmocks.MockAppDeploymentAdapterInterface
+		)
 		ctx := context.Background()
 
 		typeNamespacedName := types.NamespacedName{
@@ -87,6 +119,10 @@ var _ = Describe("AppDeployment Controller", func() {
 					}}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
+			mockRecorderCtrl = gomock.NewController(GinkgoT())
+			mockRecorder = mockpkg.NewMockEventRecorder(mockRecorderCtrl)
+			mockAdapterCtrl = gomock.NewController(GinkgoT())
+			mockAdapter = ctrlmocks.NewMockAppDeploymentAdapterInterface(mockAdapterCtrl)
 		})
 
 		AfterEach(func() {
@@ -101,9 +137,18 @@ var _ = Describe("AppDeployment Controller", func() {
 		It("should successfully reconcile the resource", func() {
 			By("Reconciling the created resource")
 			controllerReconciler := &AppDeploymentReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				recorder: mockRecorder,
 			}
+			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+
+			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{}, nil)
+			mockAdapter.EXPECT().EnsureFinalizer(gomock.Any()).Return(reconciler.OperationResult{}, nil)
+			mockAdapter.EXPECT().EnsureFinalizerDeleted(gomock.Any()).Return(reconciler.OperationResult{}, nil)
+			mockAdapter.EXPECT().EnsureDependenciesReady(gomock.Any()).Return(reconciler.OperationResult{}, nil)
+			mockAdapter.EXPECT().EnsureDeployingFinished(gomock.Any()).Return(reconciler.OperationResult{}, nil)
+			mockAdapter.EXPECT().EnsureTeardownFinished(gomock.Any()).Return(reconciler.OperationResult{}, nil)
 
 			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: typeNamespacedName,
@@ -111,6 +156,41 @@ var _ = Describe("AppDeployment Controller", func() {
 			Expect(err).NotTo(HaveOccurred())
 			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
 			// Example: If you expect a certain status condition after reconciliation, verify it here.
+		})
+		It("should cancel the reconcile loop", func() {
+			By("Reconciling the created resource")
+			controllerReconciler := &AppDeploymentReconciler{
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				recorder: mockRecorder,
+			}
+			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+
+			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{
+				CancelRequest: true,
+			}, nil)
+
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should fail to reconcile the resource", func() {
+			By("Reconciling the created resource")
+			controllerReconciler := &AppDeploymentReconciler{
+				Client:   k8sClient,
+				Scheme:   k8sClient.Scheme(),
+				recorder: mockRecorder,
+			}
+			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+
+			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{}, errors.NewServiceUnavailable("test error"))
+
+			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: typeNamespacedName,
+			})
+			Expect(errors.IsServiceUnavailable(err)).To(BeTrue(), "expected error is ServiceUnavailable")
 		})
 	})
 })

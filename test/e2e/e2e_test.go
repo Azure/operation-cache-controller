@@ -26,9 +26,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 
 	"github.com/Azure/operation-cache-controller/test/utils"
 )
+
+func init() {
+	format.MaxLength = 20000
+}
 
 // namespace where the project is deployed in
 const namespace = "operation-cache-controller-system"
