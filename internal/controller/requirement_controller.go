@@ -18,19 +18,27 @@ package controller
 
 import (
 	"context"
+	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
+
+var defaultCheckInterval = 10 * time.Minute
 
 // RequirementReconciler reconciles a Requirement object
 type RequirementReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=app.github.com,resources=requirements,verbs=get;list;watch;create;update;patch;delete
@@ -47,17 +55,70 @@ type RequirementReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
 func (r *RequirementReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	logger := log.FromContext(ctx).WithValues("requirement", req.NamespacedName)
 
-	// TODO(user): your logic here
+	requirement := &appsv1.Requirement{}
+	if err := r.Get(ctx, req.NamespacedName, requirement); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
 
-	return ctrl.Result{}, nil
+	adapter := NewRequirementAdapter(ctx, requirement, logger, r.Client, r.recorder)
+	return r.ReconcileHandler(ctx, adapter)
 }
+func (r *RequirementReconciler) ReconcileHandler(ctx context.Context, adapter RequirementAdapterInterface) (ctrl.Result, error) {
+	operations := []reconciler.ReconcileOperation{
+		adapter.EnsureNotExpired,
+		adapter.EnsureInitialized,
+		adapter.EnsureCacheExisted,
+		adapter.EnsureCachedOperationAcquired,
+		adapter.EnsureOperationReady,
+	}
+
+	for _, operation := range operations {
+		result, err := operation(ctx)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		if result.RequeueRequest {
+			return ctrl.Result{RequeueAfter: reconciler.DefaultRequeueDelay}, err
+		}
+		if result.CancelRequest {
+			return ctrl.Result{}, nil
+		}
+	}
+
+	return ctrl.Result{RequeueAfter: defaultCheckInterval}, nil
+}
+
+var requirementOwnerKey = ".requirement.metadata.controller"
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RequirementReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Operation{}, requirementOwnerKey,
+		func(rawObj client.Object) []string {
+			// grab the Operation object, extract the owner
+			op := rawObj.(*appsv1.Operation)
+			owner := metav1.GetControllerOf(op)
+			if owner == nil {
+				return nil
+			}
+			// Make sure the owner is a Requirement object
+			if owner.APIVersion != appsv1.GroupVersion.String() || owner.Kind != "Requirement" {
+				return nil
+			}
+			return []string{owner.Name}
+		}); err != nil {
+		return err
+	}
+
+	r.recorder = mgr.GetEventRecorderFor("Requirement")
+
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appv1.Requirement{}).
+		For(&appsv1.Requirement{}).
+		Owns(&appsv1.Operation{}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 100,
+		}).
 		Named("requirement").
 		Complete(r)
 }
