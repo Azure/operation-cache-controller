@@ -32,7 +32,7 @@ import (
 )
 
 func init() {
-	format.MaxLength = 10000 // Or however much you need
+	format.MaxLength = 20000
 }
 
 // namespace where the project is deployed in
