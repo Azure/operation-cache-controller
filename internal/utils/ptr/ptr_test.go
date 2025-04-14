@@ -68,12 +68,43 @@ func TestDeref(t *testing.T) {
 			input:    false,
 			expected: false,
 		},
+		{
+			name:     "nil string pointer",
+			input:    (*string)(nil),
+			expected: "",
+		},
+		{
+			name:     "nil int pointer",
+			input:    (*int)(nil),
+			expected: 0,
+		},
+		{
+			name:     "nil bool pointer",
+			input:    (*bool)(nil),
+			expected: false,
+		},
+		{
+			name:     "nil float pointer",
+			input:    (*float64)(nil),
+			expected: 0.0,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert := assert.New(t)
-			assert.Equal(Deref(Of(tt.input)), tt.expected)
+			switch v := tt.input.(type) {
+			case *string:
+				assert.Equal(Deref(v), tt.expected)
+			case *int:
+				assert.Equal(Deref(v), tt.expected)
+			case *bool:
+				assert.Equal(Deref(v), tt.expected)
+			case *float64:
+				assert.Equal(Deref(v), tt.expected)
+			default:
+				assert.Equal(Deref(Of(tt.input)), tt.expected)
+			}
 		})
 	}
 }

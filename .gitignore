@@ -26,3 +26,6 @@ go.work.sum
 
 # kubebuilder binaries
 bin/
+
+# vscode settings
+.vscode/
