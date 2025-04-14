@@ -294,7 +294,7 @@ func TestCacheAdjustCache(t *testing.T) {
 		},
 	}
 	// TODO assert operation status
-	//assert.True(t, oputils.IsAvailable(ctx, availableOperation))
+	// assert.True(t, oputils.IsAvailable(ctx, availableOperation))
 
 	// TODO add operations in other statuses
 

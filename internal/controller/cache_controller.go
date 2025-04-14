@@ -112,11 +112,11 @@ func cacheOperationIndexerFunc(obj client.Object) []string {
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *CacheReconciler) SetupWithManager(mgr ctrl.Manager) error { //+gocover:ignore:block init controller
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Operation{}, cacheOwnerKey, cacheOperationIndexerFunc); err != nil { //+gocover:ignore:block init controller
+func (r *CacheReconciler) SetupWithManager(mgr ctrl.Manager) error { // +gocover:ignore:block init controller
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Operation{}, cacheOwnerKey, cacheOperationIndexerFunc); err != nil { // +gocover:ignore:block init controller
 		return err
 	}
-	//+gocover:ignore:block init controller
+	// +gocover:ignore:block init controller
 	r.recorder = mgr.GetEventRecorderFor("Cache")
 
 	return ctrl.NewControllerManagedBy(mgr).

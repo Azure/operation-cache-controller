@@ -104,7 +104,6 @@ func (c *CacheAdapter) createOperationsAsync(ctx context.Context, ops []*appsv1.
 	wg := sync.WaitGroup{}
 	errChan := make(chan error, len(ops))
 	for _, op := range ops {
-		op := op
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -124,7 +123,6 @@ func (c *CacheAdapter) deleteOperationsAsync(ctx context.Context, ops []*appsv1.
 	wg := sync.WaitGroup{}
 	errChan := make(chan error, len(ops))
 	for _, op := range ops {
-		op := op
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -179,7 +177,6 @@ func (c *CacheAdapter) AdjustCache(ctx context.Context) (reconciler.OperationRes
 	}
 	availableCaches := []string{}
 	for _, op := range ownedOps.Items {
-		op := op
 		if operationReady(&op) {
 			availableCaches = append(availableCaches, op.Name)
 		}
@@ -196,7 +193,6 @@ func (c *CacheAdapter) AdjustCache(ctx context.Context) (reconciler.OperationRes
 		availableCacheNumToRemove := cacheBalance
 		opsToRemove := []*appsv1.Operation{}
 		for _, op := range ownedOps.Items {
-			op := op
 			if !operationReady(&op) {
 				opsToRemove = append(opsToRemove, &op)
 			} else {

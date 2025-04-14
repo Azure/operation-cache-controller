@@ -19,7 +19,6 @@ func TestRandomSelectCachedOperation(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt // capture range variable
 		t.Run(tt.name, func(t *testing.T) {
 			// ...existing setup code if any...
 			cacheInstance := &appsv1.Cache{
