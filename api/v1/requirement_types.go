@@ -28,18 +28,30 @@ type RequirementSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of Requirement. Edit requirement_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	//+kubebuilder:validation:Required
+	Template OperationSpec `json:"template"`
+	//+kubebuilder:validation:Required
+	EnableCache bool `json:"enableCache"`
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
+	ExpireAt string `json:"expireAt,omitempty"`
 }
 
 // RequirementStatus defines the observed state of Requirement.
 type RequirementStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	OperationId   string             `json:"operationId"`
+	OperationName string             `json:"operationName"`
+	CacheKey      string             `json:"originalCacheKey"`
+	Phase         string             `json:"phase"`
+	Conditions    []metav1.Condition `json:"conditions"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="OperationId",type="string",JSONPath=`.status.operationId`
 
 // Requirement is the Schema for the requirements API.
 type Requirement struct {
