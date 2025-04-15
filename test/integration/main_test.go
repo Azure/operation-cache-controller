@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/exec"
 	"testing"
@@ -65,7 +66,7 @@ func InstallCRD(ctx context.Context, cfg *envconf.Config) (context.Context, erro
 
 func DeployControllerManager(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 	// Deploy the controller manager in the test environment
-	cmd := exec.Command("make", "deploy")
+	cmd := exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
 	_, err := utils.Run(cmd)
 	return ctx, err
 }
