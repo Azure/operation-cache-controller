@@ -26,7 +26,7 @@ var testenv env.Environment
 // with the code source changes to be tested.
 var projectImage = "example.com/operation-cache-controller:v0.0.1"
 var kindClusterName = "integration-test-cluster"
-var testNamespace = "deploy-controller-system"
+var testNamespace = "operation-cache-controller-test"
 
 func init() {
 	log.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
@@ -42,6 +42,7 @@ func TestMain(m *testing.M) {
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 		envfuncs.LoadDockerImageToCluster(kindClusterName, projectImage),
 		envfuncs.CreateNamespace(testNamespace),
+		BuildImage,
 		InstallCRD,
 		DeployControllerManager,
 	)
