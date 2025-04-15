@@ -57,6 +57,13 @@ func TestMain(m *testing.M) {
 	os.Exit(testenv.Run(m))
 }
 
+func BuildImage(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
+	// Build the Docker image for the controller manager
+	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", projectImage))
+	_, err := utils.Run(cmd)
+	return ctx, err
+}
+
 func InstallCRD(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 	// Install the CRD in the test environment
 	cmd := exec.Command("make", "install")
