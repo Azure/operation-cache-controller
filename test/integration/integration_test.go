@@ -43,7 +43,6 @@ var CacheFeature = features.New("appsv1/deployment/cache").
 			}
 			var countOwnedOps int
 			for _, op := range ops.Items {
-				op := op
 				if op.ObjectMeta.GetOwnerReferences()[0].Name == cache.Name {
 					countOwnedOps++
 				}
