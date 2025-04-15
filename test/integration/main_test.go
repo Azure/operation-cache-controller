@@ -26,7 +26,7 @@ var testenv env.Environment
 // with the code source changes to be tested.
 var projectImage = "example.com/operation-cache-controller:v0.0.1"
 var kindClusterName = "integration-test-cluster"
-var testNamespace = "operation-cache-controller-test"
+var testNamespace = "operation-cache-controller"
 
 func init() {
 	log.SetLogger(zap.New(zap.WriteTo(os.Stdout), zap.UseDevMode(true)))
