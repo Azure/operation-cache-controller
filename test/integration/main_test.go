@@ -39,10 +39,10 @@ func TestMain(m *testing.M) {
 
 	// Setup the test environment with Kind cluster and necessary resources
 	testenv = testenv.Setup(
+		BuildImage,
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 		envfuncs.LoadDockerImageToCluster(kindClusterName, projectImage),
 		envfuncs.CreateNamespace(testNamespace),
-		BuildImage,
 		InstallCRD,
 		DeployControllerManager,
 	)
