@@ -1,12 +1,12 @@
 package controller
 
 const (
-	LabelNameCacheKey = "github.com/Azure/operation-cache-controller/cache-key"
+	LabelNameCacheKey = "operation-cache-controller.azure.github.com/cache-key"
 )
 
 const (
-	AnnotationNameCacheMode = "github.com/Azure/operation-cache-controller/cache-mode"
-	AnnotationNameCacheKey  = "github.com/Azure/operation-cache-controller/cache-key-annotation"
+	AnnotationNameCacheMode = "operation-cache-controller.azure.github.com/cache-mode"
+	AnnotationNameCacheKey  = "operation-cache-controller.azure.github.com/cache-key"
 	AnnotationValueTrue     = "true"
 	AnnotationValueFalse    = "false"
 )
