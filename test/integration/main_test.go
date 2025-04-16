@@ -86,5 +86,5 @@ func UninstallCRD(ctx context.Context, cfg *envconf.Config) (context.Context, er
 func TestRealCluster(t *testing.T) {
 	// Create a new test environment configuration
 	// Run the integration tests against the Kind cluster
-	testenv.Test(t, CacheFeature)
+	testenv.Test(t, SimpleRequirementFeature, CachedRequirementFeature)
 }
