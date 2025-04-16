@@ -41,14 +41,14 @@ func TestMain(m *testing.M) {
 		BuildImage,
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 		envfuncs.LoadDockerImageToCluster(kindClusterName, projectImage),
-		envfuncs.CreateNamespace(utils.TestNamespcae),
+		envfuncs.CreateNamespace(utils.TestNamespace),
 		InstallCRD,
 		DeployControllerManager,
 	)
 
 	// Teardown the test environment
 	testenv = testenv.Finish(
-		envfuncs.DeleteNamespace(utils.TestNamespcae),
+		envfuncs.DeleteNamespace(utils.TestNamespace),
 		envfuncs.DestroyCluster(kindClusterName),
 	)
 
@@ -86,5 +86,5 @@ func UninstallCRD(ctx context.Context, cfg *envconf.Config) (context.Context, er
 func TestRealCluster(t *testing.T) {
 	// Create a new test environment configuration
 	// Run the integration tests against the Kind cluster
-	testenv.Test(t, CacheFeature)
+	testenv.Test(t, SimpleRequirementFeature, CachedRequirementFeature)
 }
