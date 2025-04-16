@@ -41,14 +41,14 @@ func TestMain(m *testing.M) {
 		BuildImage,
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
 		envfuncs.LoadDockerImageToCluster(kindClusterName, projectImage),
-		envfuncs.CreateNamespace(utils.TestNamespcae),
+		envfuncs.CreateNamespace(utils.TestNamespace),
 		InstallCRD,
 		DeployControllerManager,
 	)
 
 	// Teardown the test environment
 	testenv = testenv.Finish(
-		envfuncs.DeleteNamespace(utils.TestNamespcae),
+		envfuncs.DeleteNamespace(utils.TestNamespace),
 		envfuncs.DestroyCluster(kindClusterName),
 	)
 

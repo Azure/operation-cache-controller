@@ -26,9 +26,9 @@ const (
 var SimpleRequirementFeature = features.New("Simple Requirements").
 	Setup(func(ctx context.Context, t *testing.T, c *envconf.Config) context.Context {
 		// start a deployment
-		requiremnt := utils.NewRequirement(testRequirementName, utils.TestNamespcae)
-		requiremnt.Namespace = utils.TestNamespcae
-		if err := c.Client().Resources().Create(ctx, requiremnt); err != nil {
+		testRequirement := utils.NewRequirement(testRequirementName, utils.TestNamespace)
+		testRequirement.Namespace = utils.TestNamespace
+		if err := c.Client().Resources().Create(ctx, testRequirement); err != nil {
 			t.Fatal(err)
 		}
 		time.Sleep(2 * time.Second)
@@ -37,13 +37,13 @@ var SimpleRequirementFeature = features.New("Simple Requirements").
 	}).
 	Assess("requirement created successfully", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 		var requirement v1.Requirement
-		if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespcae, &requirement); err != nil {
+		if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespace, &requirement); err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, testRequirementName, requirement.Name)
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
 			requirement := &v1.Requirement{}
-			if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespcae, requirement); err != nil {
+			if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespace, requirement); err != nil {
 				return false, err
 			}
 			if requirement.Status.Phase != rqutils.PhaseReady {
@@ -64,7 +64,7 @@ var SimpleRequirementFeature = features.New("Simple Requirements").
 	}).Feature()
 
 func newRequirementWithCache(name string) *v1.Requirement {
-	requirement := utils.NewRequirement(name, utils.TestNamespcae)
+	requirement := utils.NewRequirement(name, utils.TestNamespace)
 	requirement.Spec.EnableCache = true
 	return requirement
 }
@@ -80,7 +80,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 	}).
 	Assess("cache requirement created and synced", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
 		var requirement v1.Requirement
-		if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespcae, &requirement); err != nil {
+		if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, &requirement); err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, cachedRequirementName, requirement.Name)
@@ -88,7 +88,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		// Wait for requirement to be ready
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
 			requirement := &v1.Requirement{}
-			if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespcae, requirement); err != nil {
+			if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, requirement); err != nil {
 				return false, err
 			}
 			if requirement.Status.Phase != rqutils.PhaseReady {
@@ -102,7 +102,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		// Get the associated Cache resource
 		cache := &v1.Cache{}
 		cacheName := "cache-" + cacheKey
-		if err := cfg.Client().Resources().Get(ctx, cacheName, utils.TestNamespcae, cache); err != nil {
+		if err := cfg.Client().Resources().Get(ctx, cacheName, utils.TestNamespace, cache); err != nil {
 			t.Fatal(err, "cache not found")
 		}
 		// Verify the cache key matches
@@ -147,7 +147,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		// wait for the requirement to be deleted
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
 			requirement := &v1.Requirement{}
-			err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespcae, requirement)
+			err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, requirement)
 			// err is not found, so requirement is deleted
 			if err != nil {
 				if apierr.IsNotFound(err) {
@@ -169,7 +169,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		newRequirement := &v1.Requirement{}
 		// wait for the new requirement to be ready
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
-			if err := cfg.Client().Resources().Get(ctx, newCachedRequirementName, utils.TestNamespcae, newRequirement); err != nil {
+			if err := cfg.Client().Resources().Get(ctx, newCachedRequirementName, utils.TestNamespace, newRequirement); err != nil {
 				return false, err
 			}
 			if newRequirement.Status.Phase != rqutils.PhaseReady {
