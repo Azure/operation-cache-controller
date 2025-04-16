@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	TestNamespcae = "operation-cache-controller-system"
+	TestNamespace = "operation-cache-controller-system"
 )
 
 func NewTestJobSpec(name string) batchv1.JobSpec {
