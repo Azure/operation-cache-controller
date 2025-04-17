@@ -25,14 +25,13 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
@@ -69,13 +68,13 @@ var _ = Describe("Operation Controller", func() {
 				Name:      "test-operation",
 				Namespace: "default",
 			}
-			operation := &appv1.Operation{
+			operation := &v1alpha1.Operation{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: appv1.OperationSpec{
-					Applications: []appv1.ApplicationSpec{
+				Spec: v1alpha1.OperationSpec{
+					Applications: []v1alpha1.ApplicationSpec{
 						{
 							Name:      "test-app1",
 							Provision: newTestJobSpec(),
@@ -93,7 +92,7 @@ var _ = Describe("Operation Controller", func() {
 
 			Expect(k8sClient.Create(context.Background(), operation)).To(Succeed())
 
-			feched := &appv1.Operation{}
+			feched := &v1alpha1.Operation{}
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), key, feched)
 				return err == nil
@@ -186,19 +185,19 @@ var _ = Describe("Operation Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		operation := &appv1.Operation{}
+		operation := &v1alpha1.Operation{}
 
 		BeforeEach(func() {
 			By("creating the custom resource for the Kind Operation")
 			err := k8sClient.Get(ctx, typeNamespacedName, operation)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &appv1.Operation{
+				resource := &v1alpha1.Operation{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					Spec: appv1.OperationSpec{
-						Applications: []appv1.ApplicationSpec{
+					Spec: v1alpha1.OperationSpec{
+						Applications: []v1alpha1.ApplicationSpec{
 							{
 								Name:      "test-app1",
 								Provision: newTestJobSpec(),
@@ -219,7 +218,7 @@ var _ = Describe("Operation Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &appv1.Operation{}
+			resource := &v1alpha1.Operation{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

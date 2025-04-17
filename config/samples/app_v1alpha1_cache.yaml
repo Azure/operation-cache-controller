@@ -1,4 +1,4 @@
-apiVersion: app.github.com/v1
+apiVersion: controller.azure.github.com/v1alpha1
 kind: Cache
 metadata:
   labels:

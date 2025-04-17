@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/envconf"
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
-	v1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	rqutils "github.com/Azure/operation-cache-controller/internal/utils/controller/requirement"
 	"github.com/Azure/operation-cache-controller/test/utils"
 )
@@ -36,13 +36,13 @@ var SimpleRequirementFeature = features.New("Simple Requirements").
 		return ctx
 	}).
 	Assess("requirement created successfully", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-		var requirement v1.Requirement
+		var requirement v1alpha1.Requirement
 		if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespace, &requirement); err != nil {
 			t.Fatal(err)
 		}
 		assert.Equal(t, testRequirementName, requirement.Name)
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
-			requirement := &v1.Requirement{}
+			requirement := &v1alpha1.Requirement{}
 			if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespace, requirement); err != nil {
 				return false, err
 			}
@@ -56,14 +56,14 @@ var SimpleRequirementFeature = features.New("Simple Requirements").
 		return context.WithValue(ctx, requirementKey{}, &requirement)
 	}).
 	Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-		requirement := ctx.Value(requirementKey{}).(*v1.Requirement)
+		requirement := ctx.Value(requirementKey{}).(*v1alpha1.Requirement)
 		if err := cfg.Client().Resources().Delete(ctx, requirement); err != nil {
 			t.Fatal(err)
 		}
 		return ctx
 	}).Feature()
 
-func newRequirementWithCache(name string) *v1.Requirement {
+func newRequirementWithCache(name string) *v1alpha1.Requirement {
 	requirement := utils.NewRequirement(name, utils.TestNamespace)
 	requirement.Spec.EnableCache = true
 	return requirement
@@ -79,7 +79,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		return ctx
 	}).
 	Assess("cache requirement created and synced", func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-		var requirement v1.Requirement
+		var requirement v1alpha1.Requirement
 		if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, &requirement); err != nil {
 			t.Fatal(err)
 		}
@@ -87,7 +87,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 
 		// Wait for requirement to be ready
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
-			requirement := &v1.Requirement{}
+			requirement := &v1alpha1.Requirement{}
 			if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, requirement); err != nil {
 				return false, err
 			}
@@ -100,7 +100,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		}
 		cacheKey := requirement.Status.CacheKey
 		// Get the associated Cache resource
-		cache := &v1.Cache{}
+		cache := &v1alpha1.Cache{}
 		cacheName := "cache-" + cacheKey
 		if err := cfg.Client().Resources().Get(ctx, cacheName, utils.TestNamespace, cache); err != nil {
 			t.Fatal(err, "cache not found")
@@ -109,25 +109,25 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		assert.Equal(t, cacheKey, cache.Status.CacheKey)
 
 		// Get all Operations
-		var operations v1.OperationList
+		var operations v1alpha1.OperationList
 		if err := cfg.Client().Resources().List(ctx, &operations); err != nil {
 			t.Fatal(err, "failed to list operations")
 		}
 
 		// Verify one operation is owned by our requirement by checking owner references
 		var (
-			ownedByRequirement []v1.Operation
-			ownedByCache       []v1.Operation
+			ownedByRequirement []v1alpha1.Operation
+			ownedByCache       []v1alpha1.Operation
 		)
 		for _, op := range operations.Items {
 			for _, ownerRef := range op.OwnerReferences {
-				if ownerRef.APIVersion == v1.GroupVersion.String() &&
+				if ownerRef.APIVersion == v1alpha1.GroupVersion.String() &&
 					ownerRef.Kind == "Requirement" &&
 					ownerRef.Name == requirement.Name &&
 					ownerRef.UID == requirement.UID {
 					ownedByRequirement = append(ownedByRequirement, op)
 				}
-				if ownerRef.APIVersion == v1.GroupVersion.String() &&
+				if ownerRef.APIVersion == v1alpha1.GroupVersion.String() &&
 					ownerRef.Kind == "Cache" &&
 					ownerRef.Name == cache.Name &&
 					ownerRef.UID == cache.UID {
@@ -146,7 +146,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		}
 		// wait for the requirement to be deleted
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
-			requirement := &v1.Requirement{}
+			requirement := &v1alpha1.Requirement{}
 			err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, requirement)
 			// err is not found, so requirement is deleted
 			if err != nil {
@@ -166,7 +166,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 			t.Fatal(err)
 		}
 
-		newRequirement := &v1.Requirement{}
+		newRequirement := &v1alpha1.Requirement{}
 		// wait for the new requirement to be ready
 		if err := wait.PollUntilContextTimeout(ctx, 10*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
 			if err := cfg.Client().Resources().Get(ctx, newCachedRequirementName, utils.TestNamespace, newRequirement); err != nil {
@@ -191,24 +191,24 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		assert.True(t, cacheHit, "expected cache hit condition")
 
 		// list operations and verify the new requirement has operation with the same name from original cache
-		var newOperations v1.OperationList
+		var newOperations v1alpha1.OperationList
 		if err := cfg.Client().Resources().List(ctx, &newOperations); err != nil {
 			t.Fatal(err, "failed to list operations")
 		}
 		var (
-			ownedByNewRequirement []v1.Operation
-			ownedByCurrentCache   []v1.Operation
+			ownedByNewRequirement []v1alpha1.Operation
+			ownedByCurrentCache   []v1alpha1.Operation
 		)
 
 		for _, op := range newOperations.Items {
 			for _, ownerRef := range op.OwnerReferences {
-				if ownerRef.APIVersion == v1.GroupVersion.String() &&
+				if ownerRef.APIVersion == v1alpha1.GroupVersion.String() &&
 					ownerRef.Kind == "Requirement" &&
 					ownerRef.Name == newCachedRequirementName &&
 					ownerRef.UID == newRequirement.UID {
 					ownedByNewRequirement = append(ownedByNewRequirement, op)
 				}
-				if ownerRef.APIVersion == v1.GroupVersion.String() &&
+				if ownerRef.APIVersion == v1alpha1.GroupVersion.String() &&
 					ownerRef.Kind == "Cache" &&
 					ownerRef.Name == cacheName &&
 					ownerRef.UID == cache.UID {
@@ -238,7 +238,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		return context.WithValue(ctx, requirementKey{}, newRequirement)
 	}).
 	Teardown(func(ctx context.Context, t *testing.T, cfg *envconf.Config) context.Context {
-		requirement := ctx.Value(requirementKey{}).(*v1.Requirement)
+		requirement := ctx.Value(requirementKey{}).(*v1alpha1.Requirement)
 		if err := cfg.Client().Resources().Delete(ctx, requirement); err != nil {
 			t.Fatal(err)
 		}

@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	cacheutils "github.com/Azure/operation-cache-controller/internal/utils/controller/cache"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
@@ -34,13 +34,13 @@ type RequirementAdapterInterface interface {
 }
 
 type RequirementAdapter struct {
-	requirement *appsv1.Requirement
+	requirement *v1alpha1.Requirement
 	logger      logr.Logger
 	client      client.Client
 	recorder    record.EventRecorder
 }
 
-func NewRequirementAdapter(ctx context.Context, requirement *appsv1.Requirement, logger logr.Logger, client client.Client, recorder record.EventRecorder) RequirementAdapterInterface {
+func NewRequirementAdapter(ctx context.Context, requirement *v1alpha1.Requirement, logger logr.Logger, client client.Client, recorder record.EventRecorder) RequirementAdapterInterface {
 	if requirementAdapter, ok := ctx.Value(requirementAdapterContextKey{}).(RequirementAdapterInterface); ok {
 		return requirementAdapter
 	}
@@ -149,7 +149,7 @@ func (r *RequirementAdapter) EnsureCacheExisted(ctx context.Context) (reconciler
 		r.logger.Error(fmt.Errorf("empty cache key"), "Cache key is empty, cannot proceed with cache creation")
 		return reconciler.RequeueWithError(fmt.Errorf("empty cache key"))
 	}
-	cache := &appsv1.Cache{}
+	cache := &v1alpha1.Cache{}
 	// Try to get the Cache CR
 	if err := r.client.Get(ctx, types.NamespacedName{Name: r.defaultCacheName(), Namespace: r.requirement.Namespace}, cache); err != nil {
 		if client.IgnoreNotFound(err) != nil {
@@ -159,7 +159,7 @@ func (r *RequirementAdapter) EnsureCacheExisted(ctx context.Context) (reconciler
 		// cache cr not found, create it
 		cache.Name = r.defaultCacheName()
 		cache.Namespace = r.requirement.Namespace
-		cache.Spec = appsv1.CacheSpec{
+		cache.Spec = v1alpha1.CacheSpec{
 			OperationTemplate: r.requirement.Spec.Template,
 			ExpireTime:        cacheutils.DefaultCacheExpireTime(),
 		}
@@ -187,7 +187,7 @@ func (r *RequirementAdapter) EnsureCachedOperationAcquired(ctx context.Context) 
 		r.setCacheMissStatus()
 		return reconciler.RequeueOnErrorOrContinue(r.client.Status().Update(ctx, r.requirement))
 	}
-	operation := &appsv1.Operation{}
+	operation := &v1alpha1.Operation{}
 	if err := r.client.Get(ctx, types.NamespacedName{Name: r.requirement.Status.OperationName, Namespace: r.requirement.Namespace}, operation); err != nil {
 		r.setCacheMissStatus()
 		return reconciler.RequeueOnErrorOrContinue(fmt.Errorf("failed to get operation %s: %w", r.requirement.Status.OperationName, err))
@@ -218,19 +218,19 @@ func (r *RequirementAdapter) EnsureCachedOperationAcquired(ctx context.Context) 
 	return reconciler.RequeueOnErrorOrContinue(r.client.Status().Update(ctx, r.requirement))
 }
 
-func (r *RequirementAdapter) acquireCachedOperation(ctx context.Context, operation *appsv1.Operation) error {
+func (r *RequirementAdapter) acquireCachedOperation(ctx context.Context, operation *v1alpha1.Operation) error {
 	operation.Annotations[oputils.AcquiredAnnotationKey] = time.Now().Format(time.RFC3339)
 	operation.OwnerReferences = []metav1.OwnerReference{r.ownerReference()}
 	return r.client.Update(ctx, operation)
 }
 
-func (r *RequirementAdapter) getOperation() (*appsv1.Operation, error) {
+func (r *RequirementAdapter) getOperation() (*v1alpha1.Operation, error) {
 	namespacedName := types.NamespacedName{
 		Name:      r.requirement.Status.OperationName,
 		Namespace: r.requirement.Namespace,
 	}
 
-	operation := &appsv1.Operation{}
+	operation := &v1alpha1.Operation{}
 	if err := r.client.Get(context.Background(), namespacedName, operation); err != nil {
 		return nil, fmt.Errorf("failed to get operation %s: %w", r.requirement.Status.OperationName, err)
 	}
@@ -247,7 +247,7 @@ func (r *RequirementAdapter) updateOperation() error {
 }
 
 func (r *RequirementAdapter) createOperation() error {
-	operation := &appsv1.Operation{
+	operation := &v1alpha1.Operation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      r.requirement.Status.OperationName,
 			Namespace: r.requirement.Namespace,

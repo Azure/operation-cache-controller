@@ -8,20 +8,20 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/utils/ptr"
 )
 
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		name    string
-		app     appv1.AppDeployment
+		app     v1alpha1.AppDeployment
 		wantErr bool
 	}{
 		{
 			name: "Valid AppDeployment",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -41,13 +41,13 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:    "Empty Spec",
-			app:     appv1.AppDeployment{},
+			app:     v1alpha1.AppDeployment{},
 			wantErr: true,
 		},
 		{
 			name: "Invalid Provision Job",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: "test",
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
@@ -77,8 +77,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "Invalid TearDown Job",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: "test",
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
@@ -113,8 +113,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint activeDeadlineSeconds",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						ActiveDeadlineSeconds: ptr.Of(int64(1)),
 					},
@@ -124,8 +124,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint backoffLimit",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						BackoffLimit: ptr.Of(int32(1)),
 					},
@@ -135,8 +135,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint backoffLimitPerIndex",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						BackoffLimitPerIndex: ptr.Of(int32(1)),
 					},
@@ -146,8 +146,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint completions",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Completions: ptr.Of(int32(1)),
 					},
@@ -157,8 +157,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint completionMode",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						CompletionMode: ptr.Of(batchv1.NonIndexedCompletion),
 					},
@@ -168,8 +168,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint managedBy",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						ManagedBy: ptr.Of("test"),
 					},
@@ -179,8 +179,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint manualSelector",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						ManualSelector: ptr.Of(true),
 					},
@@ -190,8 +190,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint maxFailedIndexes",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						MaxFailedIndexes: ptr.Of(int32(1)),
 					},
@@ -201,8 +201,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint parallelism",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Parallelism: ptr.Of(int32(1)),
 					},
@@ -212,8 +212,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint podFailurePolicy",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						PodFailurePolicy: ptr.Of(batchv1.PodFailurePolicy{
 							Rules: []batchv1.PodFailurePolicyRule{
@@ -229,8 +229,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint podReplacementPolicy",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						PodReplacementPolicy: ptr.Of(batchv1.Failed),
 					},
@@ -240,8 +240,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint Selectors",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Selector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{
@@ -255,8 +255,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint TTLSecondsAfterFinished",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						TTLSecondsAfterFinished: ptr.Of(int32(1)),
 					},
@@ -266,8 +266,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint SuccessPolicy",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						CompletionMode: new(batchv1.CompletionMode),
 					},
@@ -277,8 +277,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint Suspend",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Suspend: ptr.Of(true),
 					},
@@ -288,8 +288,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "jobConstraint PodTemplate",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: "test",
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{},
@@ -300,8 +300,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "podConstraint name",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							ObjectMeta: metav1.ObjectMeta{
@@ -325,8 +325,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "podConstraint namespace",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							ObjectMeta: metav1.ObjectMeta{
@@ -350,8 +350,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "podConstraint volumes",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -377,8 +377,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "podConstraint initContainers",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -407,8 +407,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "podConstraint container count should be 1",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -435,8 +435,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "containerConstraint image is empty",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -456,8 +456,8 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name: "containerConstraint volumeMounts are not allowed",
-			app: appv1.AppDeployment{
-				Spec: appv1.AppDeploymentSpec{
+			app: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{

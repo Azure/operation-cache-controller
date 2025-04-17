@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	apdutil "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
@@ -31,13 +31,13 @@ type AppDeploymentAdapterInterface interface {
 }
 
 type AppDeploymentAdapter struct {
-	appDeployment *appsv1.AppDeployment
+	appDeployment *v1alpha1.AppDeployment
 	logger        logr.Logger
 	client        client.Client
 	recorder      record.EventRecorder
 }
 
-func NewAppDeploymentAdapter(ctx context.Context, appDeployment *appsv1.AppDeployment, logger logr.Logger, client client.Client, recorder record.EventRecorder) AppDeploymentAdapterInterface {
+func NewAppDeploymentAdapter(ctx context.Context, appDeployment *v1alpha1.AppDeployment, logger logr.Logger, client client.Client, recorder record.EventRecorder) AppDeploymentAdapterInterface {
 	if appdeploymentAdapter, ok := ctx.Value(appdeploymentAdapterContextKey{}).(AppDeploymentAdapterInterface); ok {
 		return appdeploymentAdapter
 	}
@@ -108,7 +108,7 @@ func (a *AppDeploymentAdapter) EnsureDependenciesReady(ctx context.Context) (rec
 	// list all dependencies and check if they are ready
 	for _, dep := range a.appDeployment.Spec.Dependencies {
 		// check if dependency is ready
-		appdeployment := &appsv1.AppDeployment{}
+		appdeployment := &v1alpha1.AppDeployment{}
 		realAppName := apdutil.OperationScopedAppDeployment(dep, a.appDeployment.Spec.OpId)
 		if err := a.client.Get(ctx, client.ObjectKey{Namespace: a.appDeployment.Namespace, Name: realAppName}, appdeployment); err != nil {
 			a.logger.V(1).Error(err, "dependency not found", "dependency", realAppName)

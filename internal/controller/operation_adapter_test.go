@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	adputils "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
@@ -22,14 +22,14 @@ import (
 )
 
 var (
-	emptyOperation = &appsv1.Operation{}
-	validOperation = &appsv1.Operation{
+	emptyOperation = &v1alpha1.Operation{}
+	validOperation = &v1alpha1.Operation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-operation",
 			Namespace: "default",
 		},
-		Spec: appsv1.OperationSpec{
-			Applications: []appsv1.ApplicationSpec{
+		Spec: v1alpha1.OperationSpec{
+			Applications: []v1alpha1.ApplicationSpec{
 				{
 					Name:      "test-app1",
 					Provision: newTestJobSpec(),
@@ -45,22 +45,22 @@ var (
 			},
 		},
 	}
-	emptyAppDeploymentList = &appsv1.AppDeploymentList{}
+	emptyAppDeploymentList = &v1alpha1.AppDeploymentList{}
 
-	validAppDeploymentList = &appsv1.AppDeploymentList{
-		Items: []appsv1.AppDeployment{
+	validAppDeploymentList = &v1alpha1.AppDeploymentList{
+		Items: []v1alpha1.AppDeployment{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app1",
 					Namespace: "default",
 				},
-				Spec: appsv1.AppDeploymentSpec{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId:         "test-operation",
 					Provision:    newTestJobSpec(),
 					Teardown:     newTestJobSpec(),
 					Dependencies: []string{"test-app2"},
 				},
-				Status: appsv1.AppDeploymentStatus{
+				Status: v1alpha1.AppDeploymentStatus{
 					Phase: adputils.PhaseReady,
 				},
 			},
@@ -69,26 +69,26 @@ var (
 					Name:      "test-app2",
 					Namespace: "default",
 				},
-				Spec: appsv1.AppDeploymentSpec{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId:      "test-operation",
 					Provision: newTestJobSpec(),
 					Teardown:  newTestJobSpec(),
 				},
-				Status: appsv1.AppDeploymentStatus{
+				Status: v1alpha1.AppDeploymentStatus{
 					Phase: adputils.PhaseReady,
 				},
 			},
 		},
 	}
 
-	changedValidAppDeploymentList = &appsv1.AppDeploymentList{
-		Items: []appsv1.AppDeployment{
+	changedValidAppDeploymentList = &v1alpha1.AppDeploymentList{
+		Items: []v1alpha1.AppDeployment{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-app2",
 					Namespace: "default",
 				},
-				Spec: appsv1.AppDeploymentSpec{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: "test-operation",
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
@@ -111,7 +111,7 @@ var (
 					},
 					Teardown: newTestJobSpec(),
 				},
-				Status: appsv1.AppDeploymentStatus{
+				Status: v1alpha1.AppDeploymentStatus{
 					Phase: adputils.PhaseReady,
 				},
 			},
@@ -120,12 +120,12 @@ var (
 					Name:      "test-app3",
 					Namespace: "default",
 				},
-				Spec: appsv1.AppDeploymentSpec{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId:      "test-operation",
 					Provision: newTestJobSpec(),
 					Teardown:  newTestJobSpec(),
 				},
-				Status: appsv1.AppDeploymentStatus{
+				Status: v1alpha1.AppDeploymentStatus{
 					Phase: adputils.PhaseReady,
 				},
 			},
@@ -279,15 +279,15 @@ func TestOperationAdapter_EnsureAllAppsAreReady(t *testing.T) {
 		operation.Status.Phase = oputils.PhaseReconciling
 
 		appList := emptyAppDeploymentList.DeepCopy()
-		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *appsv1.AppDeploymentList, opts ...interface{}) error {
+		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *v1alpha1.AppDeploymentList, opts ...interface{}) error {
 			*list = *changedValidAppDeploymentList
 			return nil
 		})
 		scheme := runtime.NewScheme()
-		utilruntime.Must(appsv1.AddToScheme(scheme))
+		utilruntime.Must(v1alpha1.AddToScheme(scheme))
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opt ...interface{}) error {
-			*obj.(*appsv1.AppDeployment) = appsv1.AppDeployment{}
+			*obj.(*v1alpha1.AppDeployment) = v1alpha1.AppDeployment{}
 			return nil
 		}).AnyTimes()
 		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(nil)
@@ -317,16 +317,16 @@ func TestOperationAdapter_EnsureAllAppsAreReady(t *testing.T) {
 		operation.Status.Phase = oputils.PhaseReconciling
 
 		appList := emptyAppDeploymentList.DeepCopy()
-		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *appsv1.AppDeploymentList, opts ...interface{}) error {
+		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *v1alpha1.AppDeploymentList, opts ...interface{}) error {
 			*list = *validAppDeploymentList
 			return nil
 		})
 		scheme := runtime.NewScheme()
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
-		readyAppDeployment := &appsv1.AppDeployment{}
+		readyAppDeployment := &v1alpha1.AppDeployment{}
 		readyAppDeployment.Status.Phase = adputils.PhaseReady
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opt ...interface{}) error {
-			*obj.(*appsv1.AppDeployment) = *readyAppDeployment
+			*obj.(*v1alpha1.AppDeployment) = *readyAppDeployment
 			return nil
 		}).AnyTimes()
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)

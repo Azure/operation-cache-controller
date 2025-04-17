@@ -9,7 +9,7 @@ import (
 	"github.com/samber/lo"
 	corev1 "k8s.io/api/core/v1"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 type AppCacheField struct {
@@ -47,13 +47,13 @@ func (c *AppCacheField) NewCacheKey() string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func NewCacheKeyFromApplications(apps []appsv1.ApplicationSpec) string {
+func NewCacheKeyFromApplications(apps []v1alpha1.ApplicationSpec) string {
 	// sort the apps by name to ensure consistent hashing
 	sort.Slice(apps, func(i, j int) bool {
 		return apps[i].Name < apps[j].Name
 	})
 
-	srcCacheKeys := lo.Reduce(apps, func(acc []string, app appsv1.ApplicationSpec, index int) []string {
+	srcCacheKeys := lo.Reduce(apps, func(acc []string, app v1alpha1.ApplicationSpec, index int) []string {
 		return append(acc, AppCacheFieldFromApplicationProvision(app).NewCacheKey())
 	}, []string{})
 
@@ -65,7 +65,7 @@ func NewCacheKeyFromApplications(apps []appsv1.ApplicationSpec) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-func AppCacheFieldFromApplicationProvision(app appsv1.ApplicationSpec) *AppCacheField {
+func AppCacheFieldFromApplicationProvision(app v1alpha1.ApplicationSpec) *AppCacheField {
 	return &AppCacheField{
 		Name:         app.Name,
 		Image:        app.Provision.Template.Spec.Containers[0].Image,
@@ -77,7 +77,7 @@ func AppCacheFieldFromApplicationProvision(app appsv1.ApplicationSpec) *AppCache
 	}
 }
 
-func AppCacheFieldFromApplicationTeardown(app appsv1.ApplicationSpec) *AppCacheField {
+func AppCacheFieldFromApplicationTeardown(app v1alpha1.ApplicationSpec) *AppCacheField {
 	return &AppCacheField{
 		Name:         app.Name,
 		Image:        app.Teardown.Template.Spec.Containers[0].Image,

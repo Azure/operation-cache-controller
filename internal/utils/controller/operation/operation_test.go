@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 func TestNewOperationId(t *testing.T) {
@@ -29,18 +29,18 @@ func TestNewOperationId(t *testing.T) {
 func TestDiffAppDeployments(t *testing.T) {
 	tests := []struct {
 		name        string
-		expected    []appsv1.AppDeployment
-		actual      []appsv1.AppDeployment
-		equals      func(a, b appsv1.AppDeployment) bool
+		expected    []v1alpha1.AppDeployment
+		actual      []v1alpha1.AppDeployment
+		equals      func(a, b v1alpha1.AppDeployment) bool
 		wantAdded   int
 		wantRemoved int
 		wantUpdated int
 	}{
 		{
 			name:      "basic example",
-			expected:  []appsv1.AppDeployment{{ObjectMeta: metav1.ObjectMeta{Name: "app1"}}, {ObjectMeta: metav1.ObjectMeta{Name: "app2"}}},
-			actual:    []appsv1.AppDeployment{{ObjectMeta: metav1.ObjectMeta{Name: "app2"}}, {ObjectMeta: metav1.ObjectMeta{Name: "app3"}}},
-			equals:    func(a, b appsv1.AppDeployment) bool { return a.Name == b.Name },
+			expected:  []v1alpha1.AppDeployment{{ObjectMeta: metav1.ObjectMeta{Name: "app1"}}, {ObjectMeta: metav1.ObjectMeta{Name: "app2"}}},
+			actual:    []v1alpha1.AppDeployment{{ObjectMeta: metav1.ObjectMeta{Name: "app2"}}, {ObjectMeta: metav1.ObjectMeta{Name: "app3"}}},
+			equals:    func(a, b v1alpha1.AppDeployment) bool { return a.Name == b.Name },
 			wantAdded: 1, wantRemoved: 1, wantUpdated: 0,
 		},
 	}
@@ -57,14 +57,14 @@ func TestDiffAppDeployments(t *testing.T) {
 func TestCompareProvisionJobs(t *testing.T) {
 	tests := []struct {
 		name string
-		a    appsv1.AppDeployment
-		b    appsv1.AppDeployment
+		a    v1alpha1.AppDeployment
+		b    v1alpha1.AppDeployment
 		want bool
 	}{
 		{
 			name: "different images",
-			a: appsv1.AppDeployment{
-				Spec: appsv1.AppDeploymentSpec{
+			a: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -75,8 +75,8 @@ func TestCompareProvisionJobs(t *testing.T) {
 					Dependencies: []string{"dep1", "dep2"},
 				},
 			},
-			b: appsv1.AppDeployment{
-				Spec: appsv1.AppDeploymentSpec{
+			b: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Provision: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -101,14 +101,14 @@ func TestCompareProvisionJobs(t *testing.T) {
 func TestCompareTeardownJobs(t *testing.T) {
 	tests := []struct {
 		name string
-		a    appsv1.AppDeployment
-		b    appsv1.AppDeployment
+		a    v1alpha1.AppDeployment
+		b    v1alpha1.AppDeployment
 		want bool
 	}{
 		{
 			name: "different teardown images",
-			a: appsv1.AppDeployment{
-				Spec: appsv1.AppDeploymentSpec{
+			a: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Teardown: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{
@@ -118,8 +118,8 @@ func TestCompareTeardownJobs(t *testing.T) {
 					},
 				},
 			},
-			b: appsv1.AppDeployment{
-				Spec: appsv1.AppDeploymentSpec{
+			b: v1alpha1.AppDeployment{
+				Spec: v1alpha1.AppDeploymentSpec{
 					Teardown: batchv1.JobSpec{
 						Template: corev1.PodTemplateSpec{
 							Spec: corev1.PodSpec{

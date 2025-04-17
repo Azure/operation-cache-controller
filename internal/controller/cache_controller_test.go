@@ -34,11 +34,10 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
 )
 
 func TestReconcile(t *testing.T) {
@@ -117,12 +116,12 @@ func TestReconcileHandler(t *testing.T) {
 func TestCacheOperationIndexerFunc(t *testing.T) {
 	t.Run("with Cache owner", func(t *testing.T) {
 		// Create an operation with a Cache owner
-		operation := &appsv1.Operation{
+		operation := &v1alpha1.Operation{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-operation",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: appsv1.GroupVersion.String(),
+						APIVersion: v1alpha1.GroupVersion.String(),
 						Kind:       "Cache",
 						Name:       "test-cache",
 						Controller: func() *bool { b := true; return &b }(),
@@ -140,7 +139,7 @@ func TestCacheOperationIndexerFunc(t *testing.T) {
 
 	t.Run("with no owner", func(t *testing.T) {
 		// Create an operation with no owner
-		operation := &appsv1.Operation{
+		operation := &v1alpha1.Operation{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-operation",
 			},
@@ -155,12 +154,12 @@ func TestCacheOperationIndexerFunc(t *testing.T) {
 
 	t.Run("with non-Cache owner", func(t *testing.T) {
 		// Create an operation with a non-Cache owner
-		operation := &appsv1.Operation{
+		operation := &v1alpha1.Operation{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-operation",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: appsv1.GroupVersion.String(),
+						APIVersion: v1alpha1.GroupVersion.String(),
 						Kind:       "Requirement",
 						Name:       "test-requirement",
 						Controller: func() *bool { b := true; return &b }(),
@@ -178,12 +177,12 @@ func TestCacheOperationIndexerFunc(t *testing.T) {
 
 	t.Run("with non-controller owner", func(t *testing.T) {
 		// Create an operation with a non-controller owner reference
-		operation := &appsv1.Operation{
+		operation := &v1alpha1.Operation{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-operation",
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: appsv1.GroupVersion.String(),
+						APIVersion: v1alpha1.GroupVersion.String(),
 						Kind:       "Cache",
 						Name:       "test-cache",
 						Controller: func() *bool { b := false; return &b }(),
@@ -201,7 +200,7 @@ func TestCacheOperationIndexerFunc(t *testing.T) {
 
 	t.Run("with different API version", func(t *testing.T) {
 		// Create an operation with a different API version
-		operation := &appsv1.Operation{
+		operation := &v1alpha1.Operation{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-operation",
 				OwnerReferences: []metav1.OwnerReference{
@@ -255,20 +254,20 @@ var _ = Describe("Cache Controller", func() {
 	// 		Name:      resourceName,
 	// 		Namespace: "default", // TODO(user):Modify as needed
 	// 	}
-	// 	cache := &appv1.Cache{}
+	// 	cache := &v1alpha1.Cache{}
 
 	// 	BeforeEach(func() {
 	// 		By("creating the custom resource for the Kind Cache")
 	// 		err := k8sClient.Get(ctx, typeNamespacedName, cache)
 	// 		if err != nil && errors.IsNotFound(err) {
-	// 			resource := &appv1.Cache{
+	// 			resource := &v1alpha1.Cache{
 	// 				ObjectMeta: metav1.ObjectMeta{
 	// 					Name:      resourceName,
 	// 					Namespace: "default",
 	// 				},
-	// 				Spec: appv1.CacheSpec{
-	// 					OperationTemplate: appv1.OperationSpec{
-	// 						Applications: []appv1.ApplicationSpec{
+	// 				Spec: v1alpha1.CacheSpec{
+	// 					OperationTemplate: v1alpha1.OperationSpec{
+	// 						Applications: []v1alpha1.ApplicationSpec{
 	// 							{
 	// 								Name:      "app1",
 	// 								Provision: newTestJobSpec(),
@@ -286,7 +285,7 @@ var _ = Describe("Cache Controller", func() {
 
 	// 	AfterEach(func() {
 	// 		// TODO(user): Cleanup logic after each test, like removing the resource instance.
-	// 		resource := &appv1.Cache{}
+	// 		resource := &v1alpha1.Cache{}
 	// 		err := k8sClient.Get(ctx, typeNamespacedName, resource)
 	// 		Expect(err).NotTo(HaveOccurred())
 

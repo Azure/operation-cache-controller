@@ -5,41 +5,6 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - app.github.com
-  resources:
-  - appdeployments
-  - caches
-  - operations
-  - requirements
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - app.github.com
-  resources:
-  - appdeployments/finalizers
-  - caches/finalizers
-  - operations/finalizers
-  - requirements/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - app.github.com
-  resources:
-  - appdeployments/status
-  - caches/status
-  - operations/status
-  - requirements/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
   - batch
   resources:
   - jobs
@@ -61,6 +26,41 @@ rules:
   - batch
   resources:
   - jobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - controller.azure.github.com
+  resources:
+  - appdeployments
+  - caches
+  - operations
+  - requirements
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controller.azure.github.com
+  resources:
+  - appdeployments/finalizers
+  - caches/finalizers
+  - operations/finalizers
+  - requirements/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.azure.github.com
+  resources:
+  - appdeployments/status
+  - caches/status
+  - operations/status
+  - requirements/status
   verbs:
   - get
   - patch

@@ -8,12 +8,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
-type Validater func(*appv1.AppDeployment) error
+type Validater func(*v1alpha1.AppDeployment) error
 
-func Validate(ap *appv1.AppDeployment) error {
+func Validate(ap *v1alpha1.AppDeployment) error {
 	var errs error
 	validaters := []Validater{
 		validateJobSpec,
@@ -27,8 +27,8 @@ func Validate(ap *appv1.AppDeployment) error {
 // validateJobSpec validates the container count in the AppDeployment Spec
 // * container count in AppDeployment Spec should be 1
 // * initCountainer is not allowed
-func validateJobSpec(ap *appv1.AppDeployment) error {
-	if equality.Semantic.DeepEqual(ap.Spec, appv1.AppDeploymentSpec{}) {
+func validateJobSpec(ap *v1alpha1.AppDeployment) error {
+	if equality.Semantic.DeepEqual(ap.Spec, v1alpha1.AppDeploymentSpec{}) {
 		return errors.New("spec of appdeployment is nil")
 	}
 	// provision job must be present

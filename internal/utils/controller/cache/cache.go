@@ -4,10 +4,10 @@ import (
 	"math/rand"
 	"time"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
-func RandomSelectCachedOperation(cache *appsv1.Cache) string {
+func RandomSelectCachedOperation(cache *v1alpha1.Cache) string {
 	if len(cache.Status.AvailableCaches) == 0 {
 		return ""
 	}

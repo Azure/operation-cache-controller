@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	apdutil "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
@@ -23,8 +23,8 @@ import (
 
 const testOpId = "test-op-id"
 
-var validAppDeployment = &appsv1.AppDeployment{
-	Spec: appsv1.AppDeploymentSpec{
+var validAppDeployment = &v1alpha1.AppDeployment{
+	Spec: v1alpha1.AppDeploymentSpec{
 		Provision: newTestJobSpec(),
 		Teardown:  newTestJobSpec(),
 		OpId:      testOpId,
@@ -86,7 +86,7 @@ func TestAppDeploymentAdapter_EnsureApplicationValid(t *testing.T) {
 	})
 
 	t.Run("Sad path: application return error", func(t *testing.T) {
-		appDeployment := &appsv1.AppDeployment{}
+		appDeployment := &v1alpha1.AppDeployment{}
 		adapter := NewAppDeploymentAdapter(ctx, appDeployment, logger, mockClient, mockRecorder)
 		assert.NotNil(t, adapter)
 		res, err := adapter.EnsureApplicationValid(ctx)
@@ -257,15 +257,15 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 		}
 		adapter := NewAppDeploymentAdapter(ctx, appDeployment, logger, mockClient, mockRecorder)
 
-		dependendApp := &appsv1.AppDeployment{
-			Status: appsv1.AppDeploymentStatus{
+		dependendApp := &v1alpha1.AppDeployment{
+			Status: v1alpha1.AppDeploymentStatus{
 				Phase: apdutil.PhaseReady,
 			},
 		}
 
-		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.AppDeployment{}), gomock.Any()).DoAndReturn(
+		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.AppDeployment{}), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opts ...client.GetOption) error {
-				*obj.(*appsv1.AppDeployment) = *dependendApp
+				*obj.(*v1alpha1.AppDeployment) = *dependendApp
 				assert.Equal(t, "test-op-id-test-app-1", key.Name)
 				return nil
 			}).Times(1)
@@ -287,7 +287,7 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 		}
 		adapter := NewAppDeploymentAdapter(ctx, appDeployment, logger, mockClient, mockRecorder)
 
-		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.AppDeployment{}), gomock.Any()).Return(assert.AnError).Times(1)
+		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.AppDeployment{}), gomock.Any()).Return(assert.AnError).Times(1)
 
 		res, err := adapter.EnsureDependenciesReady(ctx)
 		assert.ErrorContains(t, err, "dependency not found: test-op-id-test-app-1")
@@ -305,15 +305,15 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 		}
 		adapter := NewAppDeploymentAdapter(ctx, appDeployment, logger, mockClient, mockRecorder)
 
-		dependendApp := &appsv1.AppDeployment{
-			Status: appsv1.AppDeploymentStatus{
+		dependendApp := &v1alpha1.AppDeployment{
+			Status: v1alpha1.AppDeploymentStatus{
 				Phase: apdutil.PhasePending,
 			},
 		}
 
-		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.AppDeployment{}), gomock.Any()).DoAndReturn(
+		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.AppDeployment{}), gomock.Any()).DoAndReturn(
 			func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opts ...client.GetOption) error {
-				*obj.(*appsv1.AppDeployment) = *dependendApp
+				*obj.(*v1alpha1.AppDeployment) = *dependendApp
 				assert.Equal(t, "test-op-id-test-app-1", key.Name)
 				return nil
 			}).Times(1)
@@ -392,7 +392,7 @@ func TestAppDeploymentAdapter_EnsureDeployingFinished(t *testing.T) {
 		mockStatusWriter := mockpkg.NewMockStatusWriter(mockStatusCtrl)
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		scheme := runtime.NewScheme()
-		_ = appsv1.AddToScheme(scheme)
+		_ = v1alpha1.AddToScheme(scheme)
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
 
 		appDeployment := validAppDeployment.DeepCopy()
@@ -434,7 +434,7 @@ func TestAppDeploymentAdapter_EnsureDeployingFinished(t *testing.T) {
 		mockStatusWriter := mockpkg.NewMockStatusWriter(mockStatusCtrl)
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		scheme := runtime.NewScheme()
-		_ = appsv1.AddToScheme(scheme)
+		_ = v1alpha1.AddToScheme(scheme)
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
 
 		appDeployment := validAppDeployment.DeepCopy()
@@ -550,7 +550,7 @@ func TestAppDeploymentAdapter_EnsureTeardownFinished(t *testing.T) {
 		mockStatusWriter := mockpkg.NewMockStatusWriter(mockStatusCtrl)
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		scheme := runtime.NewScheme()
-		_ = appsv1.AddToScheme(scheme)
+		_ = v1alpha1.AddToScheme(scheme)
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
 
 		adapter := NewAppDeploymentAdapter(ctx, appDeployment, logger, mockClient, mockRecorder)
@@ -579,7 +579,7 @@ func TestAppDeploymentAdapter_EnsureTeardownFinished(t *testing.T) {
 		mockStatusWriter := mockpkg.NewMockStatusWriter(mockStatusCtrl)
 		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
 		scheme := runtime.NewScheme()
-		_ = appsv1.AddToScheme(scheme)
+		_ = v1alpha1.AddToScheme(scheme)
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
 
 		adapter := NewAppDeploymentAdapter(ctx, appDeployment, logger, mockClient, mockRecorder)

@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -41,9 +41,9 @@ type RequirementReconciler struct {
 	recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=app.github.com,resources=requirements,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=app.github.com,resources=requirements/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=app.github.com,resources=requirements/finalizers,verbs=update
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=requirements,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=requirements/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=requirements/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -57,7 +57,7 @@ type RequirementReconciler struct {
 func (r *RequirementReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("requirement", req.NamespacedName)
 
-	requirement := &appsv1.Requirement{}
+	requirement := &v1alpha1.Requirement{}
 	if err := r.Get(ctx, req.NamespacedName, requirement); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -94,16 +94,16 @@ var requirementOwnerKey = ".requirement.metadata.controller"
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RequirementReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Operation{}, requirementOwnerKey,
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.Operation{}, requirementOwnerKey,
 		func(rawObj client.Object) []string {
 			// grab the Operation object, extract the owner
-			op := rawObj.(*appsv1.Operation)
+			op := rawObj.(*v1alpha1.Operation)
 			owner := metav1.GetControllerOf(op)
 			if owner == nil {
 				return nil
 			}
 			// Make sure the owner is a Requirement object
-			if owner.APIVersion != appsv1.GroupVersion.String() || owner.Kind != "Requirement" {
+			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Requirement" {
 				return nil
 			}
 			return []string{owner.Name}
@@ -114,8 +114,8 @@ func (r *RequirementReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.recorder = mgr.GetEventRecorderFor("Requirement")
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.Requirement{}).
-		Owns(&appsv1.Operation{}).
+		For(&v1alpha1.Requirement{}).
+		Owns(&v1alpha1.Operation{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 100,
 		}).

@@ -32,7 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctrlmocks "github.com/Azure/operation-cache-controller/internal/controller/mocks"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
@@ -97,8 +97,8 @@ var _ = Describe("AppDeployment Controller", func() {
 			Name:      resourceName,
 			Namespace: "default", // TODO(user):Modify as needed
 		}
-		appdeployment := &appv1.AppDeployment{
-			Spec: appv1.AppDeploymentSpec{
+		appdeployment := &v1alpha1.AppDeployment{
+			Spec: v1alpha1.AppDeploymentSpec{
 				OpId:      "test-op-id",
 				Provision: newTestJobSpec(),
 				Teardown:  newTestJobSpec(),
@@ -109,12 +109,12 @@ var _ = Describe("AppDeployment Controller", func() {
 			By("creating the custom resource for the Kind AppDeployment")
 			err := k8sClient.Get(ctx, typeNamespacedName, appdeployment)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &appv1.AppDeployment{
+				resource := &v1alpha1.AppDeployment{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					Spec: appv1.AppDeploymentSpec{
+					Spec: v1alpha1.AppDeploymentSpec{
 						Provision: newTestJobSpec(),
 						Teardown:  newTestJobSpec(),
 					}}
@@ -128,7 +128,7 @@ var _ = Describe("AppDeployment Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &appv1.AppDeployment{}
+			resource := &v1alpha1.AppDeployment{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

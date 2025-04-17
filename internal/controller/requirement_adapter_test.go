@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	ctlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
@@ -26,12 +26,12 @@ import (
 
 var (
 	testOperationName = "test-operation"
-	emptyRequirement  = &appsv1.Requirement{}
-	validRequirement  = &appsv1.Requirement{
-		Spec: appsv1.RequirementSpec{
+	emptyRequirement  = &v1alpha1.Requirement{}
+	validRequirement  = &v1alpha1.Requirement{
+		Spec: v1alpha1.RequirementSpec{
 			ExpireAt: time.Now().Add(time.Hour).Format(time.RFC3339),
-			Template: appsv1.OperationSpec{
-				Applications: []appsv1.ApplicationSpec{
+			Template: v1alpha1.OperationSpec{
+				Applications: []v1alpha1.ApplicationSpec{
 					{
 						Name:      "test-app1",
 						Provision: newTestJobSpec(),
@@ -48,8 +48,8 @@ var (
 			},
 		},
 	}
-	validCache = &appsv1.Cache{
-		Status: appsv1.CacheStatus{
+	validCache = &v1alpha1.Cache{
+		Status: v1alpha1.CacheStatus{
 			AvailableCaches: []string{"test-cache1", "test-cache2"},
 		},
 	}
@@ -220,11 +220,11 @@ func TestRequirementAdapter_EnsureCacheExisted(t *testing.T) {
 		cache := validCache.DeepCopy()
 
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(cache), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Cache) = *cache
+			*obj.(*v1alpha1.Cache) = *cache
 			return nil
 		})
 
-		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&appsv1.Cache{})).Return(nil)
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1alpha1.Cache{})).Return(nil)
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 		res, err := adapter.EnsureCacheExisted(ctx)
 		assert.NoError(t, err)
@@ -283,10 +283,10 @@ func TestRequirementAdapter_EnsureCacheExisted(t *testing.T) {
 		cache.Status.AvailableCaches = nil
 
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(cache), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Cache) = *cache
+			*obj.(*v1alpha1.Cache) = *cache
 			return nil
 		})
-		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&appsv1.Cache{})).Return(nil)
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1alpha1.Cache{})).Return(nil)
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 		res, err := adapter.EnsureCacheExisted(ctx)
 		assert.NoError(t, err)
@@ -348,8 +348,8 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 			},
 		}
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operation
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operation
 			return nil
 		})
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -380,8 +380,8 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 			},
 		}
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operation
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operation
 			return nil
 		})
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -403,11 +403,11 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 		operation := validOperation.DeepCopy()
 		operation.Annotations = map[string]string{}
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operation
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operation
 			return nil
 		})
-		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&appsv1.Operation{})).Return(nil)
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1alpha1.Operation{})).Return(nil)
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 		res, err := adapter.EnsureCachedOperationAcquired(ctx)
@@ -424,7 +424,7 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 		requirement.Status.Phase = rqutils.PhaseCacheChecking
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).Return(assert.AnError)
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).Return(assert.AnError)
 
 		res, err := adapter.EnsureCachedOperationAcquired(ctx)
 		assert.ErrorIs(t, err, assert.AnError)
@@ -441,11 +441,11 @@ func TestRequirementAdapter_EnsureCachedOperationAcquired(t *testing.T) {
 		operation := validOperation.DeepCopy()
 		operation.Annotations = map[string]string{}
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operation
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operation
 			return nil
 		})
-		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&appsv1.Operation{})).Return(assert.AnError)
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1alpha1.Operation{})).Return(assert.AnError)
 
 		res, err := adapter.EnsureCachedOperationAcquired(ctx)
 		assert.Error(t, err)
@@ -495,11 +495,11 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 		requirement.Status.CacheKey = "test-cache-key"
 		operaition := validOperation.DeepCopy()
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operaition
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operaition
 			return nil
 		})
-		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&appsv1.Operation{})).Return(nil)
+		mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1alpha1.Operation{})).Return(nil)
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
@@ -514,7 +514,7 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 		requirement.Status.Phase = rqutils.PhaseReady
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).Return(assert.AnError)
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).Return(assert.AnError)
 
 		res, err := adapter.EnsureOperationReady(ctx)
 		assert.ErrorIs(t, err, assert.AnError)
@@ -530,8 +530,8 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 		operation := validOperation.DeepCopy()
 		operation.Status.Phase = oputils.PhaseReconciling
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operation
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operation
 			return nil
 		})
 
@@ -550,8 +550,8 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 		operation := validOperation.DeepCopy()
 		operation.Status.Phase = oputils.PhaseReconciled
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-			*obj.(*appsv1.Operation) = *operation
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.Operation) = *operation
 			return nil
 		})
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
@@ -569,10 +569,10 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 		requirement.Status.OperationName = testOperationName
 		requirement.Status.Phase = rqutils.PhaseOperating
 		scheme := runtime.NewScheme()
-		_ = appsv1.AddToScheme(scheme)
+		_ = v1alpha1.AddToScheme(scheme)
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).Return(apierrors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Operation"}, "operation not found"))
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).Return(apierrors.NewNotFound(schema.GroupResource{Group: "appsv1", Resource: "Operation"}, "operation not found"))
 		mockClient.EXPECT().Scheme().Return(scheme)
 		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(nil)
 
@@ -588,8 +588,8 @@ func TestRequirementAdapter_EnsureOperationReady(t *testing.T) {
 		requirement.Status.Phase = rqutils.PhaseOperating
 		adapter := NewRequirementAdapter(ctx, requirement, logger, mockClient, mockRecorder)
 		schema := runtime.NewScheme()
-		_ = appsv1.AddToScheme(schema)
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Operation{}), gomock.Any()).Return(assert.AnError)
+		_ = v1alpha1.AddToScheme(schema)
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.Operation{}), gomock.Any()).Return(assert.AnError)
 		mockClient.EXPECT().Scheme().Return(schema)
 		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(assert.AnError)
 

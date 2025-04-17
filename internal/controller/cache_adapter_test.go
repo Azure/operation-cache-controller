@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	ctrlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
@@ -24,7 +24,7 @@ import (
 
 func TestNewCacheAdapter(t *testing.T) {
 	t.Run("NewCacheAdapter", func(t *testing.T) {
-		testCache := &appsv1.Cache{}
+		testCache := &v1alpha1.Cache{}
 		testlogger := logr.Logger{}
 		scheme := runtime.NewScheme()
 		var (
@@ -40,8 +40,8 @@ func TestNewCacheAdapter(t *testing.T) {
 	})
 }
 
-func getTestApps() []appsv1.ApplicationSpec {
-	return []appsv1.ApplicationSpec{
+func getTestApps() []v1alpha1.ApplicationSpec {
+	return []v1alpha1.ApplicationSpec{
 		{
 			Name: "test-app-available",
 			Provision: batchv1.JobSpec{
@@ -72,15 +72,15 @@ func TestCacheCheckCacheExpiry(t *testing.T) {
 
 	t.Run("happy path", func(t *testing.T) {
 		t.Run("cache not expired", func(t *testing.T) {
-			testCache := &appsv1.Cache{
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec: appsv1.CacheSpec{
+				Spec: v1alpha1.CacheSpec{
 					ExpireTime: time.Now().Add(1 * time.Hour).Format(time.RFC3339),
 				},
-				Status: appsv1.CacheStatus{},
+				Status: v1alpha1.CacheStatus{},
 			}
 			adapter := NewCacheAdapter(ctx, testCache, testlogger, mockClient, scheme, mockRecorder, ctrl.SetControllerReference)
 			assert.NotNil(t, adapter)
@@ -91,15 +91,15 @@ func TestCacheCheckCacheExpiry(t *testing.T) {
 			assert.Equal(t, false, res.CancelRequest)
 		})
 		t.Run("cache expired", func(t *testing.T) {
-			testCache := &appsv1.Cache{
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec: appsv1.CacheSpec{
+				Spec: v1alpha1.CacheSpec{
 					ExpireTime: time.Now().Add(-1 * time.Hour).Format(time.RFC3339),
 				},
-				Status: appsv1.CacheStatus{},
+				Status: v1alpha1.CacheStatus{},
 			}
 			adapter := NewCacheAdapter(ctx, testCache, testlogger, mockClient, scheme, mockRecorder, ctrl.SetControllerReference)
 			assert.NotNil(t, adapter)
@@ -111,13 +111,13 @@ func TestCacheCheckCacheExpiry(t *testing.T) {
 			assert.Equal(t, true, res.CancelRequest)
 		})
 		t.Run("cache expireTime not set", func(t *testing.T) {
-			testCache := &appsv1.Cache{
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec:   appsv1.CacheSpec{},
-				Status: appsv1.CacheStatus{},
+				Spec:   v1alpha1.CacheSpec{},
+				Status: v1alpha1.CacheStatus{},
 			}
 			adapter := NewCacheAdapter(ctx, testCache, testlogger, mockClient, scheme, mockRecorder, ctrl.SetControllerReference)
 			assert.NotNil(t, adapter)
@@ -131,15 +131,15 @@ func TestCacheCheckCacheExpiry(t *testing.T) {
 
 	t.Run("negative cases", func(t *testing.T) {
 		t.Run("invalid expire time", func(t *testing.T) {
-			testCache := &appsv1.Cache{
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec: appsv1.CacheSpec{
+				Spec: v1alpha1.CacheSpec{
 					ExpireTime: "invalid-time",
 				},
-				Status: appsv1.CacheStatus{},
+				Status: v1alpha1.CacheStatus{},
 			}
 			adapter := NewCacheAdapter(ctx, testCache, testlogger, mockClient, scheme, mockRecorder, ctrl.SetControllerReference)
 			assert.NotNil(t, adapter)
@@ -175,17 +175,17 @@ func TestCacheEnsureCacheInitialized(t *testing.T) {
 	testCacheKey := ctrlutils.NewCacheKeyFromApplications(testApps)
 
 	t.Run("happy path", func(t *testing.T) {
-		testCache := &appsv1.Cache{
+		testCache := &v1alpha1.Cache{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cache",
 				Namespace: "test-ns",
 			},
-			Spec: appsv1.CacheSpec{
-				OperationTemplate: appsv1.OperationSpec{
+			Spec: v1alpha1.CacheSpec{
+				OperationTemplate: v1alpha1.OperationSpec{
 					Applications: testApps,
 				},
 			},
-			Status: appsv1.CacheStatus{},
+			Status: v1alpha1.CacheStatus{},
 		}
 		adapter := NewCacheAdapter(ctx, testCache, testlogger, mockClient, scheme, mockRecorder, ctrl.SetControllerReference)
 		assert.NotNil(t, adapter)
@@ -220,17 +220,17 @@ func TestCacheCalculateKeepAliveCount(t *testing.T) {
 	testApps := getTestApps()
 
 	t.Run("happy path", func(t *testing.T) {
-		testCache := &appsv1.Cache{
+		testCache := &v1alpha1.Cache{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cache",
 				Namespace: "test-ns",
 			},
-			Spec: appsv1.CacheSpec{
-				OperationTemplate: appsv1.OperationSpec{
+			Spec: v1alpha1.CacheSpec{
+				OperationTemplate: v1alpha1.OperationSpec{
 					Applications: testApps,
 				},
 			},
-			Status: appsv1.CacheStatus{},
+			Status: v1alpha1.CacheStatus{},
 		}
 		adapter := NewCacheAdapter(ctx, testCache, testlogger, mockClient, scheme, mockRecorder, ctrl.SetControllerReference)
 		assert.NotNil(t, adapter)
@@ -266,8 +266,8 @@ func TestCacheAdjustCache(t *testing.T) {
 	testApps := getTestApps()
 	testCacheKey := ctrlutils.NewCacheKeyFromApplications(testApps)
 
-	newOperation := &appsv1.Operation{
-		Spec: appsv1.OperationSpec{
+	newOperation := &v1alpha1.Operation{
+		Spec: v1alpha1.OperationSpec{
 			Applications: testApps,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -275,13 +275,13 @@ func TestCacheAdjustCache(t *testing.T) {
 			Namespace: "test-ns",
 			Labels:    map[string]string{ctrlutils.LabelNameCacheKey: testCacheKey},
 		},
-		Status: appsv1.OperationStatus{
+		Status: v1alpha1.OperationStatus{
 			Phase: oputils.PhaseEmpty,
 		},
 	}
 
-	availableOperation := &appsv1.Operation{
-		Spec: appsv1.OperationSpec{
+	availableOperation := &v1alpha1.Operation{
+		Spec: v1alpha1.OperationSpec{
 			Applications: testApps,
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -289,7 +289,7 @@ func TestCacheAdjustCache(t *testing.T) {
 			Namespace: "test-ns",
 			Labels:    map[string]string{ctrlutils.LabelNameCacheKey: testCacheKey},
 		},
-		Status: appsv1.OperationStatus{
+		Status: v1alpha1.OperationStatus{
 			Phase: oputils.PhaseReconciled,
 		},
 	}
@@ -300,22 +300,22 @@ func TestCacheAdjustCache(t *testing.T) {
 
 	t.Run("cache balance = 0", func(t *testing.T) {
 		t.Run("happy path", func(t *testing.T) {
-			resOperations := appsv1.OperationList{Items: []appsv1.Operation{
+			resOperations := v1alpha1.OperationList{Items: []v1alpha1.Operation{
 				*newOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 			}}
-			testCache := &appsv1.Cache{
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec: appsv1.CacheSpec{
-					OperationTemplate: appsv1.OperationSpec{
+				Spec: v1alpha1.CacheSpec{
+					OperationTemplate: v1alpha1.OperationSpec{
 						Applications: testApps,
 					},
 				},
-				Status: appsv1.CacheStatus{
+				Status: v1alpha1.CacheStatus{
 					CacheKey:       testCacheKey,
 					KeepAliveCount: 2,
 				},
@@ -335,25 +335,25 @@ func TestCacheAdjustCache(t *testing.T) {
 
 	t.Run("cache balance > 0", func(t *testing.T) {
 		t.Run("happy path", func(t *testing.T) {
-			resOperationItems := []appsv1.Operation{
+			resOperationItems := []v1alpha1.Operation{
 				*newOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 			}
-			resOperations := appsv1.OperationList{Items: resOperationItems}
-			testCache := &appsv1.Cache{
+			resOperations := v1alpha1.OperationList{Items: resOperationItems}
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec: appsv1.CacheSpec{
-					OperationTemplate: appsv1.OperationSpec{
+				Spec: v1alpha1.CacheSpec{
+					OperationTemplate: v1alpha1.OperationSpec{
 						Applications: testApps,
 					},
 				},
-				Status: appsv1.CacheStatus{
+				Status: v1alpha1.CacheStatus{
 					CacheKey:       testCacheKey,
 					KeepAliveCount: 2,
 				},
@@ -374,21 +374,21 @@ func TestCacheAdjustCache(t *testing.T) {
 
 	t.Run("cache balance < 0", func(t *testing.T) {
 		t.Run("happy path", func(t *testing.T) {
-			resOperations := appsv1.OperationList{Items: []appsv1.Operation{
+			resOperations := v1alpha1.OperationList{Items: []v1alpha1.Operation{
 				*newOperation.DeepCopy(),
 				*availableOperation.DeepCopy(),
 			}}
-			testCache := &appsv1.Cache{
+			testCache := &v1alpha1.Cache{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cache",
 					Namespace: "test-ns",
 				},
-				Spec: appsv1.CacheSpec{
-					OperationTemplate: appsv1.OperationSpec{
+				Spec: v1alpha1.CacheSpec{
+					OperationTemplate: v1alpha1.OperationSpec{
 						Applications: testApps,
 					},
 				},
-				Status: appsv1.CacheStatus{
+				Status: v1alpha1.CacheStatus{
 					CacheKey:       testCacheKey,
 					KeepAliveCount: 3,
 				},

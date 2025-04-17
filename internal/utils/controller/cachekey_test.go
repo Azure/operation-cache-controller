@@ -7,7 +7,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 func TestNewCacheKey(t *testing.T) {
@@ -92,12 +92,12 @@ func TestNewCacheKey(t *testing.T) {
 func TestNewCacheKeyFromApplications(t *testing.T) {
 	tests := []struct {
 		name     string
-		source   []appsv1.ApplicationSpec
+		source   []v1alpha1.ApplicationSpec
 		expected string
 	}{
 		{
 			name: "basic",
-			source: []appsv1.ApplicationSpec{
+			source: []v1alpha1.ApplicationSpec{
 				{
 					Name: "test-app-1",
 					Provision: batchv1.JobSpec{
@@ -118,7 +118,7 @@ func TestNewCacheKeyFromApplications(t *testing.T) {
 		},
 		{
 			name: "basic with dependencies",
-			source: []appsv1.ApplicationSpec{
+			source: []v1alpha1.ApplicationSpec{
 				{
 					Name: "test-app-1",
 					Provision: batchv1.JobSpec{
@@ -156,7 +156,7 @@ func TestNewCacheKeyFromApplications(t *testing.T) {
 
 		{
 			name: "basic with multiple dependencies",
-			source: []appsv1.ApplicationSpec{
+			source: []v1alpha1.ApplicationSpec{
 				{
 					Name: "test-app-1",
 					Provision: batchv1.JobSpec{
@@ -209,7 +209,7 @@ func TestNewCacheKeyFromApplications(t *testing.T) {
 		},
 		{
 			name: "basic with multiple dependencies and different order",
-			source: []appsv1.ApplicationSpec{
+			source: []v1alpha1.ApplicationSpec{
 				{
 					Name: "test-app-1",
 					Provision: batchv1.JobSpec{

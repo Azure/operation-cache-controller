@@ -1,4 +1,4 @@
-apiVersion: app.github.com/v1
+apiVersion: controller.azure.github.com/v1alhpa1
 kind: AppDeployment
 metadata:
   labels:

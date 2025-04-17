@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: operations.app.github.com
+  name: operations.controller.azure.github.com
 spec:
-  group: app.github.com
+  group: controller.azure.github.com
   names:
     kind: Operation
     listKind: OperationList
@@ -21,7 +21,7 @@ spec:
     - jsonPath: .status.cacheKey
       name: Key
       type: string
-    name: v1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         properties:

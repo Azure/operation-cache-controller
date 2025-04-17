@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	apdutil "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
@@ -40,9 +40,9 @@ type AppDeploymentReconciler struct {
 	recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=app.github.com,resources=appdeployments,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=app.github.com,resources=appdeployments/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=app.github.com,resources=appdeployments/finalizers,verbs=update
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=appdeployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=appdeployments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=appdeployments/finalizers,verbs=update
 // +kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=batch,resources=jobs/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=batch,resources=jobs/finalizers,verbs=update
@@ -58,7 +58,7 @@ type AppDeploymentReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
 func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues(apdutil.LogKeyAppDeploymentName, req.NamespacedName)
-	appdeployment := &appsv1.AppDeployment{}
+	appdeployment := &v1alpha1.AppDeployment{}
 	if err := r.Get(ctx, req.NamespacedName, appdeployment); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -99,7 +99,7 @@ func (r *AppDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			if owner == nil {
 				return nil
 			}
-			if owner.APIVersion != appsv1.GroupVersion.String() || owner.Kind != "AppDeployment" {
+			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "AppDeployment" {
 				return nil
 			}
 			return []string{owner.Name}
@@ -110,7 +110,7 @@ func (r *AppDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.recorder = mgr.GetEventRecorderFor("AppDeployment")
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.AppDeployment{}).
+		For(&v1alpha1.AppDeployment{}).
 		Owns(&batchv1.Job{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 100,

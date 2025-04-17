@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	appv1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

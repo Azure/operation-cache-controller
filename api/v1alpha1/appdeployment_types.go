@@ -14,63 +14,58 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v1alpha1
 
 import (
+	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// RequirementSpec defines the desired state of Requirement.
-type RequirementSpec struct {
+// AppDeploymentSpec defines the desired state of AppDeployment.
+type AppDeploymentSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
 	// +kubebuilder:validation:Required
-	Template OperationSpec `json:"template"`
-	// +kubebuilder:validation:Required
-	EnableCache bool `json:"enableCache"`
+	Provision batchv1.JobSpec `json:"provision"`
+	Teardown  batchv1.JobSpec `json:"teardown"`
+	OpId      string          `json:"opId"`
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
-	ExpireAt string `json:"expireAt,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty"`
 }
 
-// RequirementStatus defines the observed state of Requirement.
-type RequirementStatus struct {
+// AppDeploymentStatus defines the observed state of AppDeployment.
+type AppDeploymentStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	OperationId   string             `json:"operationId"`
-	OperationName string             `json:"operationName"`
-	CacheKey      string             `json:"originalCacheKey"`
-	Phase         string             `json:"phase"`
-	Conditions    []metav1.Condition `json:"conditions"`
+	Phase      string             `json:"phase"`
+	Conditions []metav1.Condition `json:"conditions"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="OperationId",type="string",JSONPath=`.status.operationId`
-
-// Requirement is the Schema for the requirements API.
-type Requirement struct {
+// +kubebuilder:printcolumn:name="Owner",type="string",JSONPath=`.metadata.ownerReferences[0].name`
+// AppDeployment is the Schema for the appdeployments API.
+type AppDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   RequirementSpec   `json:"spec,omitempty"`
-	Status RequirementStatus `json:"status,omitempty"`
+	Spec   AppDeploymentSpec   `json:"spec,omitempty"`
+	Status AppDeploymentStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// RequirementList contains a list of Requirement.
-type RequirementList struct {
+// AppDeploymentList contains a list of AppDeployment.
+type AppDeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Requirement `json:"items"`
+	Items           []AppDeployment `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Requirement{}, &RequirementList{})
+	SchemeBuilder.Register(&AppDeployment{}, &AppDeploymentList{})
 }
