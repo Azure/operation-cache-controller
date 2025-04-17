@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	cacheutils "github.com/Azure/operation-cache-controller/internal/utils/controller/cache"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"

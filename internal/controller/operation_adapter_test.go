@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	adputils "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"

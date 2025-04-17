@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
 	ctrlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"

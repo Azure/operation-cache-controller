@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 

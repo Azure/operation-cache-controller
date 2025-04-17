@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 )
 
@@ -41,8 +41,8 @@ func TestClearConditions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appDep := &appv1.AppDeployment{
-				Status: appv1.AppDeploymentStatus{
+			appDep := &v1alpha1.AppDeployment{
+				Status: v1alpha1.AppDeploymentStatus{
 					Conditions: tt.existingConditions,
 				},
 			}

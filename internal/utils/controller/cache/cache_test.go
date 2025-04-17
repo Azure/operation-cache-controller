@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 func TestRandomSelectCachedOperation(t *testing.T) {

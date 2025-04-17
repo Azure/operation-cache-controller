@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 func RandomSelectCachedOperation(cache *v1alpha1.Cache) string {

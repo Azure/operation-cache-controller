@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v1alpha1 "github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctlrutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	apdutils "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
