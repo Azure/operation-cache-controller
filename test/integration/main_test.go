@@ -22,9 +22,6 @@ import (
 
 var testenv env.Environment
 
-// projectImage is the name of the image which will be build and loaded
-// with the code source changes to be tested.
-var projectImage = "example.com/operation-cache-controller:v0.0.1"
 var kindClusterName = "integration-test-cluster"
 
 func init() {
@@ -40,7 +37,7 @@ func TestMain(m *testing.M) {
 	testenv = testenv.Setup(
 		BuildImage,
 		envfuncs.CreateCluster(kind.NewProvider(), kindClusterName),
-		envfuncs.LoadDockerImageToCluster(kindClusterName, projectImage),
+		envfuncs.LoadDockerImageToCluster(kindClusterName, utils.ProjectImage),
 		envfuncs.CreateNamespace(utils.TestNamespace),
 		InstallCRD,
 		DeployControllerManager,
@@ -58,7 +55,7 @@ func TestMain(m *testing.M) {
 
 func BuildImage(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 	// Build the Docker image for the controller manager
-	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", projectImage))
+	cmd := exec.Command("make", "docker-build", fmt.Sprintf("IMG=%s", utils.ProjectImage))
 	_, err := utils.Run(cmd)
 	return ctx, err
 }
@@ -72,7 +69,7 @@ func InstallCRD(ctx context.Context, cfg *envconf.Config) (context.Context, erro
 
 func DeployControllerManager(ctx context.Context, cfg *envconf.Config) (context.Context, error) {
 	// Deploy the controller manager in the test environment
-	cmd := exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", projectImage))
+	cmd := exec.Command("make", "deploy", fmt.Sprintf("IMG=%s", utils.ProjectImage))
 	_, err := utils.Run(cmd)
 	return ctx, err
 }
