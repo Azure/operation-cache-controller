@@ -14,72 +14,63 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1
+package v1alpha1
 
 import (
-	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-type ApplicationSpec struct {
-	Name      string          `json:"name"`
-	Provision batchv1.JobSpec `json:"provision"`
-	Teardown  batchv1.JobSpec `json:"teardown"`
-	// +kubebuilder:validation:Optional
-	Dependencies []string `json:"dependencies,omitempty"`
-}
-
-// OperationSpec defines the desired state of Operation.
-type OperationSpec struct {
+// RequirementSpec defines the desired state of Requirement.
+type RequirementSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinItems=1
-	Applications []ApplicationSpec `json:"applications"`
-	// +kubebuilder:validation:optional
+	Template OperationSpec `json:"template"`
+	// +kubebuilder:validation:Required
+	EnableCache bool `json:"enableCache"`
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Pattern:=`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`
 	ExpireAt string `json:"expireAt,omitempty"`
 }
 
-// OperationStatus defines the observed state of Operation.
-type OperationStatus struct {
+// RequirementStatus defines the observed state of Requirement.
+type RequirementStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	// Conditions is a list of conditions to describe the status of the deploy
-	Conditions  []metav1.Condition `json:"conditions"`
-	Phase       string             `json:"phase"`
-	CacheKey    string             `json:"cacheKey"`
-	OperationID string             `json:"operationId"`
+	OperationId   string             `json:"operationId"`
+	OperationName string             `json:"operationName"`
+	CacheKey      string             `json:"originalCacheKey"`
+	Phase         string             `json:"phase"`
+	Conditions    []metav1.Condition `json:"conditions"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="Key",type="string",JSONPath=`.status.cacheKey`
+// +kubebuilder:printcolumn:name="OperationId",type="string",JSONPath=`.status.operationId`
 
-// Operation is the Schema for the operations API.
-type Operation struct {
+// Requirement is the Schema for the requirements API.
+type Requirement struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   OperationSpec   `json:"spec,omitempty"`
-	Status OperationStatus `json:"status,omitempty"`
+	Spec   RequirementSpec   `json:"spec,omitempty"`
+	Status RequirementStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// OperationList contains a list of Operation.
-type OperationList struct {
+// RequirementList contains a list of Requirement.
+type RequirementList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Operation `json:"items"`
+	Items           []Requirement `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Operation{}, &OperationList{})
+	SchemeBuilder.Register(&Requirement{}, &RequirementList{})
 }

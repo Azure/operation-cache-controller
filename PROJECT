@@ -15,6 +15,6 @@ resources:
   domain: github.com
   group: app
   kind: AppDeployment
-  path: github.com/Azure/operation-cache-controller/api/v1
-  version: v1
+  path: github.com/Azure/operation-cache-controller/api/v1alpha1
+  version: v1alpha1
 version: "3"

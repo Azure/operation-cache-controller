@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctrlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
@@ -30,7 +30,7 @@ type CacheAdapterInterface interface {
 }
 
 type CacheAdapter struct {
-	cache                      *appsv1.Cache
+	cache                      *v1alpha1.Cache
 	logger                     logr.Logger
 	client                     client.Client
 	scheme                     *runtime.Scheme
@@ -39,7 +39,7 @@ type CacheAdapter struct {
 }
 
 func NewCacheAdapter(ctx context.Context,
-	cache *appsv1.Cache, logger logr.Logger, client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
+	cache *v1alpha1.Cache, logger logr.Logger, client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder,
 	fn func(owner, controlled metav1.Object, scheme *runtime.Scheme, opts ...controllerutil.OwnerReferenceOption) error) CacheAdapterInterface {
 	return &CacheAdapter{
 		cache:                      cache,
@@ -100,7 +100,7 @@ func (c *CacheAdapter) CalculateKeepAliveCount(ctx context.Context) (reconciler.
 	return reconciler.RequeueOnErrorOrContinue(c.updateStatus(ctx))
 }
 
-func (c *CacheAdapter) createOperationsAsync(ctx context.Context, ops []*appsv1.Operation) error {
+func (c *CacheAdapter) createOperationsAsync(ctx context.Context, ops []*v1alpha1.Operation) error {
 	wg := sync.WaitGroup{}
 	errChan := make(chan error, len(ops))
 	for _, op := range ops {
@@ -119,7 +119,7 @@ func (c *CacheAdapter) createOperationsAsync(ctx context.Context, ops []*appsv1.
 	return errs
 }
 
-func (c *CacheAdapter) deleteOperationsAsync(ctx context.Context, ops []*appsv1.Operation) error {
+func (c *CacheAdapter) deleteOperationsAsync(ctx context.Context, ops []*v1alpha1.Operation) error {
 	wg := sync.WaitGroup{}
 	errChan := make(chan error, len(ops))
 	for _, op := range ops {
@@ -138,12 +138,12 @@ func (c *CacheAdapter) deleteOperationsAsync(ctx context.Context, ops []*appsv1.
 	return errs
 }
 
-func operationReady(op *appsv1.Operation) bool {
+func operationReady(op *v1alpha1.Operation) bool {
 	return op.Status.Phase == oputils.PhaseReconciled
 }
 
-func (c *CacheAdapter) initOperationFromCache(operationName string) *appsv1.Operation {
-	op := &appsv1.Operation{}
+func (c *CacheAdapter) initOperationFromCache(operationName string) *v1alpha1.Operation {
+	op := &v1alpha1.Operation{}
 
 	annotations := op.GetAnnotations()
 	if annotations == nil {
@@ -171,7 +171,7 @@ func (c *CacheAdapter) initOperationFromCache(operationName string) *appsv1.Oper
 }
 
 func (c *CacheAdapter) AdjustCache(ctx context.Context) (reconciler.OperationResult, error) {
-	var ownedOps appsv1.OperationList
+	var ownedOps v1alpha1.OperationList
 	if err := c.client.List(ctx, &ownedOps, client.InNamespace(c.cache.Namespace), client.MatchingFields{cacheOwnerKey: c.cache.Name}); err != nil {
 		return reconciler.RequeueWithError(err)
 	}
@@ -191,7 +191,7 @@ func (c *CacheAdapter) AdjustCache(ctx context.Context) (reconciler.OperationRes
 	case cacheBalance > 0:
 		// remove all the not available operations and cut available operations down to keepAliveCount
 		availableCacheNumToRemove := cacheBalance
-		opsToRemove := []*appsv1.Operation{}
+		opsToRemove := []*v1alpha1.Operation{}
 		for _, op := range ownedOps.Items {
 			if !operationReady(&op) {
 				opsToRemove = append(opsToRemove, &op)
@@ -209,7 +209,7 @@ func (c *CacheAdapter) AdjustCache(ctx context.Context) (reconciler.OperationRes
 	case cacheBalance < 0:
 		if len(ownedOps.Items) < keepAliveCount {
 			// also count not available operations, create new operations to meet the keepAliveCount
-			opsToCreate := []*appsv1.Operation{}
+			opsToCreate := []*v1alpha1.Operation{}
 			opsNumToCreate := keepAliveCount - len(ownedOps.Items)
 			for range opsNumToCreate {
 				opName := fmt.Sprintf("cached-operation-%s-%s", c.cache.Status.CacheKey[:8], strings.ToLower(ctrlutils.GenerateRandomString(5)))

@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 func TestRandomSelectCachedOperation(t *testing.T) {
@@ -21,8 +21,8 @@ func TestRandomSelectCachedOperation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// ...existing setup code if any...
-			cacheInstance := &appsv1.Cache{
-				Status: appsv1.CacheStatus{
+			cacheInstance := &v1alpha1.Cache{
+				Status: v1alpha1.CacheStatus{
 					AvailableCaches: tt.caches,
 				},
 			}

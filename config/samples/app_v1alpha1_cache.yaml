@@ -1,9 +1,9 @@
-apiVersion: app.github.com/v1
-kind: AppDeployment
+apiVersion: controller.azure.github.com/v1alpha1
+kind: Cache
 metadata:
   labels:
     app.kubernetes.io/name: operation-cache-controller
     app.kubernetes.io/managed-by: kustomize
-  name: appdeployment-sample
+  name: cache-sample
 spec:
   # TODO(user): Add fields here

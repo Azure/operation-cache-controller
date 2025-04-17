@@ -34,7 +34,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
@@ -71,14 +71,14 @@ var _ = Describe("Requirement Controller", func() {
 				Name:      "test-requirement",
 				Namespace: "default",
 			}
-			requirement := &appsv1.Requirement{
+			requirement := &v1alpha1.Requirement{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      key.Name,
 					Namespace: key.Namespace,
 				},
-				Spec: appsv1.RequirementSpec{
-					Template: appsv1.OperationSpec{
-						Applications: []appsv1.ApplicationSpec{
+				Spec: v1alpha1.RequirementSpec{
+					Template: v1alpha1.OperationSpec{
+						Applications: []v1alpha1.ApplicationSpec{
 							{
 								Name: "test-app",
 								Provision: batchv1.JobSpec{
@@ -110,7 +110,7 @@ var _ = Describe("Requirement Controller", func() {
 			}
 			Expect(k8sClient.Create(context.Background(), requirement)).Should(Succeed())
 
-			fetchedRequirement := &appsv1.Requirement{}
+			fetchedRequirement := &v1alpha1.Requirement{}
 			Eventually(func() bool {
 				err := k8sClient.Get(context.Background(), key, fetchedRequirement)
 				return err == nil
@@ -200,20 +200,20 @@ var _ = Describe("Requirement Controller", func() {
 			Name:      resourceName,
 			Namespace: "default",
 		}
-		requirement := &appsv1.Requirement{}
+		requirement := &v1alpha1.Requirement{}
 
 		BeforeEach(func() {
 			By("Creating a new Requirement resource")
 			err := k8sClient.Get(ctx, typeNamespacedName, requirement)
 			if err != nil && errors.IsNotFound(err) {
-				resource := &appsv1.Requirement{
+				resource := &v1alpha1.Requirement{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      typeNamespacedName.Name,
 						Namespace: typeNamespacedName.Namespace,
 					},
-					Spec: appsv1.RequirementSpec{
-						Template: appsv1.OperationSpec{
-							Applications: []appsv1.ApplicationSpec{
+					Spec: v1alpha1.RequirementSpec{
+						Template: v1alpha1.OperationSpec{
+							Applications: []v1alpha1.ApplicationSpec{
 								{
 									Name: "test-app",
 									Provision: batchv1.JobSpec{
@@ -249,7 +249,7 @@ var _ = Describe("Requirement Controller", func() {
 
 		AfterEach(func() {
 			// TODO(user): Cleanup logic after each test, like removing the resource instance.
-			resource := &appsv1.Requirement{}
+			resource := &v1alpha1.Requirement{}
 			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
 

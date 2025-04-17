@@ -8,7 +8,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 // NewOperationId generates a new operation id which is an UUID.
@@ -17,8 +17,8 @@ func NewOperationId() string {
 }
 
 // DiffAppDeployments returns the difference between two slices of AppDeployment.
-func DiffAppDeployments(expected, actual []appsv1.AppDeployment,
-	equals func(a, b appsv1.AppDeployment) bool) (added, removed, updated []appsv1.AppDeployment) {
+func DiffAppDeployments(expected, actual []v1alpha1.AppDeployment,
+	equals func(a, b v1alpha1.AppDeployment) bool) (added, removed, updated []v1alpha1.AppDeployment) {
 	// Find added and updated AppDeployments.
 	for _, e := range expected {
 		found := false
@@ -112,7 +112,7 @@ func isStringSliceIdentical(a, b []string) bool {
 	return true
 }
 
-func CompareProvisionJobs(a, b appsv1.AppDeployment) bool {
+func CompareProvisionJobs(a, b v1alpha1.AppDeployment) bool {
 	if sameProvisionJob := isJobResultIdentical(a.Spec.Provision, b.Spec.Provision); !sameProvisionJob {
 		return false
 	}
@@ -128,7 +128,7 @@ func CompareProvisionJobs(a, b appsv1.AppDeployment) bool {
 	return true
 }
 
-func CompareTeardownJobs(a, b appsv1.AppDeployment) bool {
+func CompareTeardownJobs(a, b v1alpha1.AppDeployment) bool {
 	if sameTeardownJob := isJobResultIdentical(a.Spec.Teardown, b.Spec.Teardown); !sameTeardownJob {
 		return false
 	}

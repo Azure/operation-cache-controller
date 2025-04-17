@@ -2,10 +2,10 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/app.github.com_appdeployments.yaml
-- bases/app.github.com_operations.yaml
-- bases/app.github.com_caches.yaml
-- bases/app.github.com_requirements.yaml
+- bases/controller.azure.github.com_appdeployments.yaml
+- bases/controller.azure.github.com_operations.yaml
+- bases/controller.azure.github.com_caches.yaml
+- bases/controller.azure.github.com_requirements.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

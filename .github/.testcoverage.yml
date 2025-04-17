@@ -39,7 +39,7 @@ exclude:
   # Exclude files or packages matching their paths
   paths:
     - .*mock.*    # excludes all generated mock files
-    - ^api/v1      # exclude api/v1 
+    - ^api/v1alpha1      # exclude api/v1alpha1 
     - ^test/       # exclude test files
     - ^cmd         # exclude cmd files
 

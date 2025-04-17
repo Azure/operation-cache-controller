@@ -4,9 +4,9 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: appdeployments.app.github.com
+  name: appdeployments.controller.azure.github.com
 spec:
-  group: app.github.com
+  group: controller.azure.github.com
   names:
     kind: AppDeployment
     listKind: AppDeploymentList
@@ -21,7 +21,7 @@ spec:
     - jsonPath: .metadata.ownerReferences[0].name
       name: Owner
       type: string
-    name: v1
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         properties:

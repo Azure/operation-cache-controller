@@ -3,16 +3,16 @@ package requirement
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
-func ClearConditions(r *appsv1.Requirement) {
+func ClearConditions(r *v1alpha1.Requirement) {
 	if r.Status.Conditions == nil {
 		r.Status.Conditions = []metav1.Condition{}
 	}
 }
 
-func getCondition(r *appsv1.Requirement, conditionType string) (int, *metav1.Condition) {
+func getCondition(r *v1alpha1.Requirement, conditionType string) (int, *metav1.Condition) {
 	for i, condition := range r.Status.Conditions {
 		if condition.Type == conditionType {
 			return i, &condition
@@ -21,12 +21,12 @@ func getCondition(r *appsv1.Requirement, conditionType string) (int, *metav1.Con
 	return -1, nil
 }
 
-func IsCacheMissed(r *appsv1.Requirement) bool {
+func IsCacheMissed(r *v1alpha1.Requirement) bool {
 	_, condition := getCondition(r, ConditionCachedOperationAcquired)
 	return condition == nil || condition.Status == metav1.ConditionFalse
 }
 
-func UpdateCondition(r *appsv1.Requirement, conditionType string, conditionStatus metav1.ConditionStatus, reason, message string) bool {
+func UpdateCondition(r *v1alpha1.Requirement, conditionType string, conditionStatus metav1.ConditionStatus, reason, message string) bool {
 	condition := &metav1.Condition{
 		Type:               conditionType,
 		Status:             conditionStatus,

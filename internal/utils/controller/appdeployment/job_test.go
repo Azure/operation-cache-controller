@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -114,11 +114,11 @@ func TestGetProvisionJobName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appDeployment := &appv1.AppDeployment{
+			appDeployment := &v1alpha1.AppDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: tt.appName,
 				},
-				Spec: appv1.AppDeploymentSpec{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: tt.opId,
 				},
 			}
@@ -157,11 +157,11 @@ func TestGetTeardownJobName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appDeployment := &appv1.AppDeployment{
+			appDeployment := &v1alpha1.AppDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: tt.appName,
 				},
-				Spec: appv1.AppDeploymentSpec{
+				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: tt.opId,
 				},
 			}

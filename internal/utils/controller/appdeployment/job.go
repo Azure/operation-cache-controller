@@ -7,7 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	appv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 )
 
 const (
@@ -35,23 +35,23 @@ func validJName(appName, operationId, jobType string) string {
 	return originName
 }
 
-func ProvisionJobFromAppDeploymentSpec(appDeployment *appv1.AppDeployment) *batchv1.Job {
+func ProvisionJobFromAppDeploymentSpec(appDeployment *v1alpha1.AppDeployment) *batchv1.Job {
 	return jobFromAppDeploymentSpec(appDeployment, JobTypeProvision)
 }
 
-func TeardownJobFromAppDeploymentSpec(appDeployment *appv1.AppDeployment) *batchv1.Job {
+func TeardownJobFromAppDeploymentSpec(appDeployment *v1alpha1.AppDeployment) *batchv1.Job {
 	return jobFromAppDeploymentSpec(appDeployment, JobTypeTeardown)
 }
 
-func GetProvisionJobName(appDeployment *appv1.AppDeployment) string {
+func GetProvisionJobName(appDeployment *v1alpha1.AppDeployment) string {
 	return validJName(appDeployment.Name, appDeployment.Spec.OpId, JobTypeProvision)
 }
 
-func GetTeardownJobName(appDeployment *appv1.AppDeployment) string {
+func GetTeardownJobName(appDeployment *v1alpha1.AppDeployment) string {
 	return validJName(appDeployment.Name, appDeployment.Spec.OpId, JobTypeTeardown)
 }
 
-func jobFromAppDeploymentSpec(appDeployment *appv1.AppDeployment, suffix string) *batchv1.Job {
+func jobFromAppDeploymentSpec(appDeployment *v1alpha1.AppDeployment, suffix string) *batchv1.Job {
 	ops := jobOptions{
 		name:        validJName(appDeployment.Name, appDeployment.Spec.OpId, suffix),
 		namespace:   appDeployment.Namespace,

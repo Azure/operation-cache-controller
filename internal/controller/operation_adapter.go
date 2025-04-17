@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctlrutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	apdutils "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
 	oputils "github.com/Azure/operation-cache-controller/internal/utils/controller/operation"
@@ -32,13 +32,13 @@ type OperationAdapterInterface interface {
 }
 
 type OperationAdapter struct {
-	operation *appsv1.Operation
+	operation *v1alpha1.Operation
 	logger    logr.Logger
 	client    client.Client
 	recorder  record.EventRecorder
 }
 
-func NewOperationAdapter(ctx context.Context, operation *appsv1.Operation, logger logr.Logger, client client.Client, recorder record.EventRecorder) OperationAdapterInterface {
+func NewOperationAdapter(ctx context.Context, operation *v1alpha1.Operation, logger logr.Logger, client client.Client, recorder record.EventRecorder) OperationAdapterInterface {
 	if operationAdapter, ok := ctx.Value(operationAdapterContextKey{}).(OperationAdapterInterface); ok {
 		return operationAdapter
 	}
@@ -199,7 +199,7 @@ func (o *OperationAdapter) reconcilingApplications(ctx context.Context) error {
 
 	// check if all expected app deployments are ready
 	for _, app := range expectedAppDeployments {
-		appdeployment := &appsv1.AppDeployment{}
+		appdeployment := &v1alpha1.AppDeployment{}
 		if err := o.client.Get(ctx, client.ObjectKey{Namespace: app.Namespace, Name: app.Name}, appdeployment); err != nil {
 			return fmt.Errorf("failed to get app deployment: %w", err)
 		}
@@ -212,14 +212,14 @@ func (o *OperationAdapter) reconcilingApplications(ctx context.Context) error {
 	return nil
 }
 
-func (o *OperationAdapter) expectedAppDeployments() []appsv1.AppDeployment {
-	return lo.Map(o.operation.Spec.Applications, func(app appsv1.ApplicationSpec, index int) appsv1.AppDeployment {
-		return appsv1.AppDeployment{
+func (o *OperationAdapter) expectedAppDeployments() []v1alpha1.AppDeployment {
+	return lo.Map(o.operation.Spec.Applications, func(app v1alpha1.ApplicationSpec, index int) v1alpha1.AppDeployment {
+		return v1alpha1.AppDeployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      apdutils.OperationScopedAppDeployment(app.Name, o.operation.Status.OperationID),
 				Namespace: o.operation.Namespace,
 			},
-			Spec: appsv1.AppDeploymentSpec{
+			Spec: v1alpha1.AppDeploymentSpec{
 				OpId:         o.operation.Status.OperationID,
 				Provision:    app.Provision,
 				Teardown:     app.Teardown,
@@ -229,13 +229,13 @@ func (o *OperationAdapter) expectedAppDeployments() []appsv1.AppDeployment {
 	})
 }
 
-func (o *OperationAdapter) listCurrentAppDeployments(ctx context.Context) ([]appsv1.AppDeployment, error) {
-	appDeploymentList := &appsv1.AppDeploymentList{}
+func (o *OperationAdapter) listCurrentAppDeployments(ctx context.Context) ([]v1alpha1.AppDeployment, error) {
+	appDeploymentList := &v1alpha1.AppDeploymentList{}
 	if err := o.client.List(ctx, appDeploymentList, client.MatchingFields{operationOwnerKey: o.operation.Name}); err != nil {
 		return nil, fmt.Errorf("failed to list appDeployments: %w", err)
 	}
-	return lo.Map(appDeploymentList.Items, func(app appsv1.AppDeployment, index int) appsv1.AppDeployment {
-		return appsv1.AppDeployment{
+	return lo.Map(appDeploymentList.Items, func(app v1alpha1.AppDeployment, index int) v1alpha1.AppDeployment {
+		return v1alpha1.AppDeployment{
 			ObjectMeta: app.ObjectMeta,
 			Spec:       app.Spec,
 		}

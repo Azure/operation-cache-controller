@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -43,11 +43,11 @@ type CacheReconciler struct {
 	recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=app.github.com,resources=caches,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=app.github.com,resources=caches/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=app.github.com,resources=caches/finalizers,verbs=update
-// +kubebuilder:rbac:groups=app.github.com,resources=operations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=app.github.com,resources=operations/status,verbs=get
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=caches,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=caches/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=caches/finalizers,verbs=update
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=operations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=operations/status,verbs=get
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -60,7 +60,7 @@ type CacheReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.1/pkg/reconcile
 func (r *CacheReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	cache := &appsv1.Cache{}
+	cache := &v1alpha1.Cache{}
 	if err := r.Get(ctx, req.NamespacedName, cache); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -98,13 +98,13 @@ var cacheOwnerKey = ".metadata.controller.cache"
 
 func cacheOperationIndexerFunc(obj client.Object) []string {
 	// grab the operation object, extract the owner...
-	operation := obj.(*appsv1.Operation)
+	operation := obj.(*v1alpha1.Operation)
 	owner := metav1.GetControllerOf(operation)
 	if owner == nil {
 		return nil
 	}
 	// ...make sure it's a Cache...
-	if owner.APIVersion != appsv1.GroupVersion.String() || owner.Kind != "Cache" {
+	if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Cache" {
 		return nil
 	}
 	// ...and if so, return it
@@ -113,15 +113,15 @@ func cacheOperationIndexerFunc(obj client.Object) []string {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CacheReconciler) SetupWithManager(mgr ctrl.Manager) error { // +gocover:ignore:block init controller
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.Operation{}, cacheOwnerKey, cacheOperationIndexerFunc); err != nil { // +gocover:ignore:block init controller
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.Operation{}, cacheOwnerKey, cacheOperationIndexerFunc); err != nil { // +gocover:ignore:block init controller
 		return err
 	}
 	// +gocover:ignore:block init controller
 	r.recorder = mgr.GetEventRecorderFor("Cache")
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.Cache{}).
-		Owns(&appsv1.Operation{}).
+		For(&v1alpha1.Cache{}).
+		Owns(&v1alpha1.Operation{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 50,
 		}).

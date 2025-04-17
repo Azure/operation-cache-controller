@@ -4,24 +4,17 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.17.2
-  name: requirements.app.github.com
+  name: caches.controller.azure.github.com
 spec:
-  group: app.github.com
+  group: controller.azure.github.com
   names:
-    kind: Requirement
-    listKind: RequirementList
-    plural: requirements
-    singular: requirement
+    kind: Cache
+    listKind: CacheList
+    plural: caches
+    singular: cache
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .status.phase
-      name: Phase
-      type: string
-    - jsonPath: .status.operationId
-      name: OperationId
-      type: string
-    name: v1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         properties:
@@ -33,12 +26,10 @@ spec:
             type: object
           spec:
             properties:
-              enableCache:
-                type: boolean
-              expireAt:
+              expireTime:
                 pattern: ^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$
                 type: string
-              template:
+              operationTemplate:
                 properties:
                   applications:
                     items:
@@ -7562,62 +7553,25 @@ spec:
                 required:
                 - applications
                 type: object
+              strategy:
+                type: string
             required:
-            - enableCache
-            - template
+            - operationTemplate
             type: object
           status:
             properties:
-              conditions:
+              availableCaches:
                 items:
-                  properties:
-                    lastTransitionTime:
-                      format: date-time
-                      type: string
-                    message:
-                      maxLength: 32768
-                      type: string
-                    observedGeneration:
-                      format: int64
-                      minimum: 0
-                      type: integer
-                    reason:
-                      maxLength: 1024
-                      minLength: 1
-                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
-                      type: string
-                    status:
-                      enum:
-                      - "True"
-                      - "False"
-                      - Unknown
-                      type: string
-                    type:
-                      maxLength: 316
-                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                      type: string
-                  required:
-                  - lastTransitionTime
-                  - message
-                  - reason
-                  - status
-                  - type
-                  type: object
+                  type: string
                 type: array
-              operationId:
+              cacheKey:
                 type: string
-              operationName:
-                type: string
-              originalCacheKey:
-                type: string
-              phase:
-                type: string
+              keepAlive:
+                format: int32
+                type: integer
             required:
-            - conditions
-            - operationId
-            - operationName
-            - originalCacheKey
-            - phase
+            - cacheKey
+            - keepAlive
             type: object
         type: object
     served: true

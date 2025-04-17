@@ -1,9 +1,9 @@
-apiVersion: app.github.com/v1
-kind: Requirement
+apiVersion: controller.azure.github.com/v1alpha1
+kind: Operation
 metadata:
   labels:
     app.kubernetes.io/name: operation-cache-controller
     app.kubernetes.io/managed-by: kustomize
-  name: requirement-sample
+  name: operation-sample
 spec:
   # TODO(user): Add fields here

@@ -27,7 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/Azure/operation-cache-controller/api/v1"
+	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -38,9 +38,9 @@ type OperationReconciler struct {
 	recorder record.EventRecorder
 }
 
-// +kubebuilder:rbac:groups=app.github.com,resources=operations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=app.github.com,resources=operations/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=app.github.com,resources=operations/finalizers,verbs=update
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=operations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=operations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=controller.azure.github.com,resources=operations/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -54,7 +54,7 @@ type OperationReconciler struct {
 func (r *OperationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	operation := &appsv1.Operation{}
+	operation := &v1alpha1.Operation{}
 	if err := r.Get(ctx, req.NamespacedName, operation); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -89,16 +89,16 @@ var operationOwnerKey = ".operation.metadata.controller"
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *OperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &appsv1.AppDeployment{}, operationOwnerKey,
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.AppDeployment{}, operationOwnerKey,
 		func(rawObj client.Object) []string {
 			// grab the AppDeployment object, extract the owner
-			adp := rawObj.(*appsv1.AppDeployment)
+			adp := rawObj.(*v1alpha1.AppDeployment)
 			owner := metav1.GetControllerOf(adp)
 			if owner == nil {
 				return nil
 			}
 			// Make sure the owner is a Operation object
-			if owner.APIVersion != appsv1.GroupVersion.String() || owner.Kind != "Operation" {
+			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Operation" {
 				return nil
 			}
 			return []string{owner.Name}
@@ -109,8 +109,8 @@ func (r *OperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.recorder = mgr.GetEventRecorderFor("Operation")
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.Operation{}).
-		Owns(&appsv1.AppDeployment{}).
+		For(&v1alpha1.Operation{}).
+		Owns(&v1alpha1.AppDeployment{}).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 100,
 		}).
