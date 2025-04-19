@@ -5,6 +5,8 @@
 domain: github.com
 layout:
 - go.kubebuilder.io/v4
+plugins:
+  helm.kubebuilder.io/v1-alpha: {}
 projectName: operation-cache-controller
 repo: github.com/Azure/operation-cache-controller
 resources:
