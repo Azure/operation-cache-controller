@@ -1,0 +1,71 @@
+{{- if .Values.rbac.enable }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  name: operation-cache-controller-manager-role
+rules:
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - batch
+  resources:
+  - jobs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - controller.azure.github.com
+  resources:
+  - appdeployments
+  - caches
+  - operations
+  - requirements
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - controller.azure.github.com
+  resources:
+  - appdeployments/finalizers
+  - caches/finalizers
+  - operations/finalizers
+  - requirements/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - controller.azure.github.com
+  resources:
+  - appdeployments/status
+  - caches/status
+  - operations/status
+  - requirements/status
+  verbs:
+  - get
+  - patch
+  - update
+{{- end -}}
