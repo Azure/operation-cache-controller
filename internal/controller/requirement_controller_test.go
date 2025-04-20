@@ -35,7 +35,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	"github.com/Azure/operation-cache-controller/internal/handler/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -122,7 +123,7 @@ var _ = Describe("Requirement Controller", func() {
 			mockClientCtrl   *gomock.Controller
 			mockRecorderCtrl *gomock.Controller
 			mockAdapterCtrl  *gomock.Controller
-			mockAdapter      *mocks.MockRequirementAdapterInterface
+			mockAdapter      *mocks.MockRequirementHandlerInterface
 
 			requirementReconciler *RequirementReconciler
 
@@ -136,7 +137,7 @@ var _ = Describe("Requirement Controller", func() {
 			mockClientCtrl = gomock.NewController(GinkgoT())
 			mockRecorderCtrl = gomock.NewController(GinkgoT())
 			mockAdapterCtrl = gomock.NewController(GinkgoT())
-			mockAdapter = mocks.NewMockRequirementAdapterInterface(mockAdapterCtrl)
+			mockAdapter = mocks.NewMockRequirementHandlerInterface(mockAdapterCtrl)
 
 			requirementReconciler = &RequirementReconciler{
 				Client: k8sClient,
@@ -157,7 +158,7 @@ var _ = Describe("Requirement Controller", func() {
 			mockAdapter.EXPECT().EnsureCachedOperationAcquired(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 			mockAdapter.EXPECT().EnsureOperationReady(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 
-			result, err := requirementReconciler.Reconcile(context.WithValue(context.Background(), requirementAdapterContextKey{}, mockAdapter), ctrl.Request{
+			result, err := requirementReconciler.Reconcile(context.WithValue(context.Background(), handler.RequiremenContextKey{}, mockAdapter), ctrl.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -169,7 +170,7 @@ var _ = Describe("Requirement Controller", func() {
 			testErr := fmt.Errorf("test-error")
 			mockAdapter.EXPECT().EnsureNotExpired(gomock.Any()).Return(reconciler.RequeueWithError(testErr))
 
-			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, requirementAdapterContextKey{}, mockAdapter), ctrl.Request{
+			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, handler.RequiremenContextKey{}, mockAdapter), ctrl.Request{
 				NamespacedName: key,
 			})
 			Expect(err).To(MatchError(testErr))
@@ -184,7 +185,7 @@ var _ = Describe("Requirement Controller", func() {
 				CancelRequest: true,
 			}, nil)
 
-			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, requirementAdapterContextKey{}, mockAdapter), ctrl.Request{
+			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, handler.RequiremenContextKey{}, mockAdapter), ctrl.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())

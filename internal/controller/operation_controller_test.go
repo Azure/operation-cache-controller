@@ -32,7 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	"github.com/Azure/operation-cache-controller/internal/handler/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -104,7 +105,7 @@ var _ = Describe("Operation Controller", func() {
 			mockClientCtrl   *gomock.Controller
 			mockRecorderCtrl *gomock.Controller
 			mockAdapterCtrl  *gomock.Controller
-			mockAdapter      *mocks.MockOperationAdapterInterface
+			mockAdapter      *mocks.MockOperationHandlerInterface
 
 			operationReconciler *OperationReconciler
 
@@ -118,7 +119,7 @@ var _ = Describe("Operation Controller", func() {
 			mockClientCtrl = gomock.NewController(GinkgoT())
 			mockRecorderCtrl = gomock.NewController(GinkgoT())
 			mockAdapterCtrl = gomock.NewController(GinkgoT())
-			mockAdapter = mocks.NewMockOperationAdapterInterface(mockAdapterCtrl)
+			mockAdapter = mocks.NewMockOperationHandlerInterface(mockAdapterCtrl)
 			operationReconciler = &OperationReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
@@ -141,7 +142,7 @@ var _ = Describe("Operation Controller", func() {
 			mockAdapter.EXPECT().EnsureAllAppsAreReady(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 			mockAdapter.EXPECT().EnsureAllAppsAreDeleted(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 
-			res, err := operationReconciler.Reconcile(context.WithValue(ctx, operationAdapterContextKey{}, mockAdapter), reconcile.Request{
+			res, err := operationReconciler.Reconcile(context.WithValue(ctx, handler.OperationContextKey{}, mockAdapter), reconcile.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -154,7 +155,7 @@ var _ = Describe("Operation Controller", func() {
 			testErr := fmt.Errorf("test-error")
 			mockAdapter.EXPECT().EnsureFinalizer(gomock.Any()).Return(reconciler.ContinueOperationResult(), testErr)
 
-			res, err := operationReconciler.Reconcile(context.WithValue(ctx, operationAdapterContextKey{}, mockAdapter), reconcile.Request{
+			res, err := operationReconciler.Reconcile(context.WithValue(ctx, handler.OperationContextKey{}, mockAdapter), reconcile.Request{
 				NamespacedName: key,
 			})
 			Expect(err).To(HaveOccurred())
@@ -169,7 +170,7 @@ var _ = Describe("Operation Controller", func() {
 				CancelRequest: true,
 			}, nil)
 
-			res, err := operationReconciler.Reconcile(context.WithValue(ctx, operationAdapterContextKey{}, mockAdapter), reconcile.Request{
+			res, err := operationReconciler.Reconcile(context.WithValue(ctx, handler.OperationContextKey{}, mockAdapter), reconcile.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())

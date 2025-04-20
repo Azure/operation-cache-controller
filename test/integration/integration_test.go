@@ -12,7 +12,6 @@ import (
 	"sigs.k8s.io/e2e-framework/pkg/features"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	rqutils "github.com/Azure/operation-cache-controller/internal/utils/controller/requirement"
 	"github.com/Azure/operation-cache-controller/test/utils"
 )
 
@@ -46,7 +45,7 @@ var SimpleRequirementFeature = features.New("Simple Requirements").
 			if err := cfg.Client().Resources().Get(ctx, testRequirementName, utils.TestNamespace, requirement); err != nil {
 				return false, err
 			}
-			if requirement.Status.Phase != rqutils.PhaseReady {
+			if requirement.Status.Phase != v1alpha1.RequirementPhaseReady {
 				return false, nil
 			}
 			return true, nil
@@ -91,7 +90,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 			if err := cfg.Client().Resources().Get(ctx, cachedRequirementName, utils.TestNamespace, requirement); err != nil {
 				return false, err
 			}
-			if requirement.Status.Phase != rqutils.PhaseReady {
+			if requirement.Status.Phase != v1alpha1.RequirementPhaseReady {
 				return false, nil
 			}
 			return true, nil
@@ -172,7 +171,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 			if err := cfg.Client().Resources().Get(ctx, newCachedRequirementName, utils.TestNamespace, newRequirement); err != nil {
 				return false, err
 			}
-			if newRequirement.Status.Phase != rqutils.PhaseReady {
+			if newRequirement.Status.Phase != v1alpha1.RequirementPhaseReady {
 				return false, nil
 			}
 			return true, nil
@@ -183,7 +182,7 @@ var CachedRequirementFeature = features.New("Cached Requirements").
 		// cache should be hit
 		cacheHit := false
 		for _, condition := range newRequirement.Status.Conditions {
-			if condition.Type == rqutils.ConditionOperationReady {
+			if condition.Type == v1alpha1.RequirementConditionOperationReady {
 				cacheHit = true
 				break
 			}

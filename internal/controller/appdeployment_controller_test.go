@@ -33,8 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	ctrlmocks "github.com/Azure/operation-cache-controller/internal/controller/mocks"
-	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	hmocks "github.com/Azure/operation-cache-controller/internal/handler/mocks"
+	utilsmock "github.com/Azure/operation-cache-controller/internal/utils/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -87,9 +88,9 @@ var _ = Describe("AppDeployment Controller", func() {
 		const resourceName = "test-resource"
 		var (
 			mockRecorderCtrl *gomock.Controller
-			mockRecorder     *mockpkg.MockEventRecorder
+			mockRecorder     *utilsmock.MockEventRecorder
 			mockAdapterCtrl  *gomock.Controller
-			mockAdapter      *ctrlmocks.MockAppDeploymentAdapterInterface
+			mockAdapter      *hmocks.MockAppDeploymentHandlerInterface
 		)
 		ctx := context.Background()
 
@@ -121,9 +122,9 @@ var _ = Describe("AppDeployment Controller", func() {
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 			mockRecorderCtrl = gomock.NewController(GinkgoT())
-			mockRecorder = mockpkg.NewMockEventRecorder(mockRecorderCtrl)
+			mockRecorder = utilsmock.NewMockEventRecorder(mockRecorderCtrl)
 			mockAdapterCtrl = gomock.NewController(GinkgoT())
-			mockAdapter = ctrlmocks.NewMockAppDeploymentAdapterInterface(mockAdapterCtrl)
+			mockAdapter = hmocks.NewMockAppDeploymentHandlerInterface(mockAdapterCtrl)
 		})
 
 		AfterEach(func() {
@@ -142,7 +143,7 @@ var _ = Describe("AppDeployment Controller", func() {
 				Scheme:   k8sClient.Scheme(),
 				recorder: mockRecorder,
 			}
-			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+			ctx = context.WithValue(ctx, handler.AppdeploymentHandlerContextKey{}, mockAdapter)
 
 			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{}, nil)
 			mockAdapter.EXPECT().EnsureFinalizer(gomock.Any()).Return(reconciler.OperationResult{}, nil)
@@ -165,7 +166,7 @@ var _ = Describe("AppDeployment Controller", func() {
 				Scheme:   k8sClient.Scheme(),
 				recorder: mockRecorder,
 			}
-			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+			ctx = context.WithValue(ctx, handler.AppdeploymentHandlerContextKey{}, mockAdapter)
 
 			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{
 				CancelRequest: true,
@@ -184,7 +185,7 @@ var _ = Describe("AppDeployment Controller", func() {
 				Scheme:   k8sClient.Scheme(),
 				recorder: mockRecorder,
 			}
-			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+			ctx = context.WithValue(ctx, handler.AppdeploymentHandlerContextKey{}, mockAdapter)
 
 			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{}, errors.NewServiceUnavailable("test error"))
 

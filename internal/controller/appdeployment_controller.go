@@ -26,10 +26,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	klog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	apdutil "github.com/Azure/operation-cache-controller/internal/utils/controller/appdeployment"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	"github.com/Azure/operation-cache-controller/internal/log"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -57,23 +58,22 @@ type AppDeploymentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
 func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).WithValues(apdutil.LogKeyAppDeploymentName, req.NamespacedName)
+	logger := klog.FromContext(ctx).WithValues(log.AppDeploymentJobName, req.NamespacedName)
 	appdeployment := &v1alpha1.AppDeployment{}
 	if err := r.Get(ctx, req.NamespacedName, appdeployment); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	adapter := NewAppDeploymentAdapter(ctx, appdeployment, logger, r.Client, r.recorder)
-	return r.ReconcileHandler(ctx, adapter)
+	return r.ReconcileHandler(ctx, handler.NewAppDeploymentHandler(ctx, appdeployment, logger, r.Client, r.recorder))
 }
-func (r *AppDeploymentReconciler) ReconcileHandler(ctx context.Context, adapter AppDeploymentAdapterInterface) (ctrl.Result, error) {
+func (r *AppDeploymentReconciler) ReconcileHandler(ctx context.Context, h handler.AppDeploymentHandlerInterface) (ctrl.Result, error) {
 	operations := []reconciler.ReconcileOperation{
-		adapter.EnsureApplicationValid,
-		adapter.EnsureFinalizer,
-		adapter.EnsureFinalizerDeleted,
-		adapter.EnsureDependenciesReady,
-		adapter.EnsureDeployingFinished,
-		adapter.EnsureTeardownFinished,
+		h.EnsureApplicationValid,
+		h.EnsureFinalizer,
+		h.EnsureFinalizerDeleted,
+		h.EnsureDependenciesReady,
+		h.EnsureDeployingFinished,
+		h.EnsureTeardownFinished,
 	}
 
 	for _, operation := range operations {

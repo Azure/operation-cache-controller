@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/internal/handler"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -62,16 +63,15 @@ func (r *RequirementReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	adapter := NewRequirementAdapter(ctx, requirement, logger, r.Client, r.recorder)
-	return r.ReconcileHandler(ctx, adapter)
+	return r.ReconcileHandler(ctx, handler.NewRequirementHandler(ctx, requirement, logger, r.Client, r.recorder))
 }
-func (r *RequirementReconciler) ReconcileHandler(ctx context.Context, adapter RequirementAdapterInterface) (ctrl.Result, error) {
+func (r *RequirementReconciler) ReconcileHandler(ctx context.Context, h handler.RequirementHandlerInterface) (ctrl.Result, error) {
 	operations := []reconciler.ReconcileOperation{
-		adapter.EnsureNotExpired,
-		adapter.EnsureInitialized,
-		adapter.EnsureCacheExisted,
-		adapter.EnsureCachedOperationAcquired,
-		adapter.EnsureOperationReady,
+		h.EnsureNotExpired,
+		h.EnsureInitialized,
+		h.EnsureCacheExisted,
+		h.EnsureCachedOperationAcquired,
+		h.EnsureOperationReady,
 	}
 
 	for _, operation := range operations {
