@@ -132,16 +132,9 @@ func (ou OperationHelper) CompareProvisionJobs(a, b v1alpha1.AppDeployment) bool
 	if sameProvisionJob := ou.isJobResultIdentical(a.Spec.Provision, b.Spec.Provision); !sameProvisionJob {
 		return false
 	}
-	// sort dependencies to ensure consistent hashing
-	sort.Strings(a.Spec.Dependencies)
-	sort.Strings(b.Spec.Dependencies)
-	for i, dep := range a.Spec.Dependencies {
-		if dep != b.Spec.Dependencies[i] {
-			return false
-		}
-	}
 
-	return true
+	// Check if the dependencies are the same using the helper function
+	return isStringSliceIdentical(a.Spec.Dependencies, b.Spec.Dependencies)
 }
 
 func (ou OperationHelper) CompareTeardownJobs(a, b v1alpha1.AppDeployment) bool {

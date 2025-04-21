@@ -90,29 +90,27 @@ func (r *RequirementReconciler) ReconcileHandler(ctx context.Context, h handler.
 	return ctrl.Result{RequeueAfter: defaultCheckInterval}, nil
 }
 
-var requirementOwnerKey = ".requirement.metadata.controller"
+func requirementIndexerFunc(rawObj client.Object) []string {
+	// grab the Operation object, extract the owner
+	op := rawObj.(*v1alpha1.Operation)
+	owner := metav1.GetControllerOf(op)
+	if owner == nil {
+		return nil
+	}
+	// Make sure the owner is a Requirement object
+	if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Requirement" {
+		return nil
+	}
+	return []string{owner.Name}
+}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *RequirementReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.Operation{}, requirementOwnerKey,
-		func(rawObj client.Object) []string {
-			// grab the Operation object, extract the owner
-			op := rawObj.(*v1alpha1.Operation)
-			owner := metav1.GetControllerOf(op)
-			if owner == nil {
-				return nil
-			}
-			// Make sure the owner is a Requirement object
-			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Requirement" {
-				return nil
-			}
-			return []string{owner.Name}
-		}); err != nil {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(),
+		&v1alpha1.Operation{}, v1alpha1.RequirementOwnerKey, requirementIndexerFunc); err != nil {
 		return err
 	}
-
 	r.recorder = mgr.GetEventRecorderFor("Requirement")
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Requirement{}).
 		Owns(&v1alpha1.Operation{}).

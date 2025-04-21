@@ -309,3 +309,169 @@ func TestNewCacheKeyFromApplications(t *testing.T) {
 		})
 	}
 }
+
+func TestAppCacheFieldFromApplicationTeardown(t *testing.T) {
+	tests := []struct {
+		name     string
+		app      v1alpha1.ApplicationSpec
+		expected AppCacheField
+	}{
+		{
+			name: "basic teardown",
+			app: v1alpha1.ApplicationSpec{
+				Name: "test-app-1",
+				Teardown: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image:      "nginx:cleanup",
+									Command:    []string{"cleanup"},
+									Args:       []string{"--all"},
+									WorkingDir: "/cleanup",
+									Env: []corev1.EnvVar{
+										{Name: "CLEANUP_MODE", Value: "full"},
+										{Name: "DEBUG", Value: "true"},
+									},
+								},
+							},
+						},
+					},
+				},
+				Dependencies: []string{"dep-1", "dep-2"},
+			},
+			expected: AppCacheField{
+				Name:         "test-app-1",
+				Image:        "nginx:cleanup",
+				Command:      []string{"cleanup"},
+				Args:         []string{"--all"},
+				WorkingDir:   "/cleanup",
+				Env:          []corev1.EnvVar{{Name: "CLEANUP_MODE", Value: "full"}, {Name: "DEBUG", Value: "true"}},
+				Dependencies: []string{"dep-1", "dep-2"},
+			},
+		},
+		{
+			name: "teardown with empty fields",
+			app: v1alpha1.ApplicationSpec{
+				Name: "test-app-minimal",
+				Teardown: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image: "minimal:latest",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: AppCacheField{
+				Name:         "test-app-minimal",
+				Image:        "minimal:latest",
+				Command:      nil,
+				Args:         nil,
+				WorkingDir:   "",
+				Env:          nil,
+				Dependencies: nil,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := cacheHelper.AppCacheFieldFromApplicationTeardown(tt.app)
+
+			assert.Equal(t, tt.expected.Name, actual.Name)
+			assert.Equal(t, tt.expected.Image, actual.Image)
+			assert.Equal(t, tt.expected.Command, actual.Command)
+			assert.Equal(t, tt.expected.Args, actual.Args)
+			assert.Equal(t, tt.expected.WorkingDir, actual.WorkingDir)
+			assert.Equal(t, tt.expected.Env, actual.Env)
+			assert.Equal(t, tt.expected.Dependencies, actual.Dependencies)
+		})
+	}
+}
+
+func TestAppCacheFieldFromApplicationProvision(t *testing.T) {
+	tests := []struct {
+		name     string
+		app      v1alpha1.ApplicationSpec
+		expected AppCacheField
+	}{
+		{
+			name: "basic provision",
+			app: v1alpha1.ApplicationSpec{
+				Name: "test-app-1",
+				Provision: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image:      "nginx:latest",
+									Command:    []string{"nginx"},
+									Args:       []string{"-g", "daemon off;"},
+									WorkingDir: "/app",
+									Env: []corev1.EnvVar{
+										{Name: "ENV_VAR1", Value: "value1"},
+										{Name: "ENV_VAR2", Value: "value2"},
+									},
+								},
+							},
+						},
+					},
+				},
+				Dependencies: []string{"dep-1", "dep-2"},
+			},
+			expected: AppCacheField{
+				Name:         "test-app-1",
+				Image:        "nginx:latest",
+				Command:      []string{"nginx"},
+				Args:         []string{"-g", "daemon off;"},
+				WorkingDir:   "/app",
+				Env:          []corev1.EnvVar{{Name: "ENV_VAR1", Value: "value1"}, {Name: "ENV_VAR2", Value: "value2"}},
+				Dependencies: []string{"dep-1", "dep-2"},
+			},
+		},
+		{
+			name: "provision with empty fields",
+			app: v1alpha1.ApplicationSpec{
+				Name: "test-app-minimal",
+				Provision: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{
+								{
+									Image: "minimal:latest",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: AppCacheField{
+				Name:         "test-app-minimal",
+				Image:        "minimal:latest",
+				Command:      nil,
+				Args:         nil,
+				WorkingDir:   "",
+				Env:          nil,
+				Dependencies: nil,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := cacheHelper.AppCacheFieldFromApplicationProvision(tt.app)
+
+			assert.Equal(t, tt.expected.Name, actual.Name)
+			assert.Equal(t, tt.expected.Image, actual.Image)
+			assert.Equal(t, tt.expected.Command, actual.Command)
+			assert.Equal(t, tt.expected.Args, actual.Args)
+			assert.Equal(t, tt.expected.WorkingDir, actual.WorkingDir)
+			assert.Equal(t, tt.expected.Env, actual.Env)
+			assert.Equal(t, tt.expected.Dependencies, actual.Dependencies)
+		})
+	}
+}

@@ -195,4 +195,82 @@ var _ = Describe("AppDeployment Controller", func() {
 			Expect(errors.IsServiceUnavailable(err)).To(BeTrue(), "expected error is ServiceUnavailable")
 		})
 	})
+
+	Context("appDeploymentIndexerFunc tests", func() {
+		It("should return nil for Job without owner", func() {
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-without-owner",
+					Namespace: "default",
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(BeNil())
+		})
+
+		It("should return nil for Job with non-AppDeployment owner", func() {
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-with-wrong-owner",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Pod",
+							Name:       "owner-pod",
+							UID:        "12345",
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(BeNil())
+		})
+
+		It("should return owner name for Job with AppDeployment owner", func() {
+			ownerName := "test-appdeployment"
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-with-appdeployment-owner",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "AppDeployment",
+							Name:       ownerName,
+							UID:        "67890",
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(Equal([]string{ownerName}))
+		})
+
+		It("should return nil for Job with AppDeployment owner reference that is not controller", func() {
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-with-non-controller-appdeployment",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "AppDeployment",
+							Name:       "test-appdeployment",
+							UID:        "13579",
+							Controller: nil, // Not a controller reference
+						},
+					},
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(BeNil())
+		})
+	})
 })

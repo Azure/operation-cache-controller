@@ -21,6 +21,8 @@ import (
 )
 
 const (
+	RequirementOwnerKey = ".requirement.metadata.controller"
+
 	RequirementFinalizerName = "finalizer.requirement.devinfra.goms.io"
 
 	RequirementConditionRequirementInitialized  = "RequirementInitialized"

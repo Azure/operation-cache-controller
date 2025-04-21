@@ -270,4 +270,76 @@ var _ = Describe("Requirement Controller", func() {
 			Expect(result).Should(Equal(reconcile.Result{RequeueAfter: reconciler.DefaultRequeueDelay}))
 		})
 	})
+
+	Context("Testing requirementIndexerFunc", func() {
+		It("Should return the owner name for an Operation owned by a Requirement", func() {
+			ownerName := "test-requirement-owner"
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "Requirement",
+							Name:       ownerName,
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(HaveLen(1))
+			Expect(indexKeys[0]).To(Equal(ownerName))
+		})
+
+		It("Should return nil if the Operation has no owner", func() {
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation-no-owner",
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(BeNil())
+		})
+
+		It("Should return nil if the Operation is owned by a non-Requirement resource", func() {
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation-wrong-owner",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Pod",
+							Name:       "some-pod",
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(BeNil())
+		})
+
+		It("Should return nil if the owner is a Requirement but not the controller", func() {
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation-not-controlled",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "Requirement",
+							Name:       "non-controller-requirement",
+							Controller: &[]bool{false}[0],
+						},
+					},
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(BeNil())
+		})
+	})
 })

@@ -347,6 +347,109 @@ func TestAppDeploymentAdapter_EnsureDependenciesReady(t *testing.T) {
 	})
 }
 
+func TestAppDeploymentAdapter_EnsureDependenciesReady_MultipleDepencies(t *testing.T) {
+	ctx := context.Background()
+	logger := log.FromContext(ctx)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockClient := mockpkg.NewMockClient(mockCtrl)
+	mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+	mockStatusWriter := mockpkg.NewMockStatusWriter(mockCtrl)
+	mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
+
+	appDeployment := validAppDeployment.DeepCopy()
+	appDeployment.Status.Phase = v1alpha1.AppDeploymentPhasePending
+	appDeployment.Spec.OpId = testOpId
+	appDeployment.Spec.Dependencies = []string{
+		"test-app-1",
+		"test-app-2",
+	}
+
+	adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+
+	readyApp := &v1alpha1.AppDeployment{
+		Status: v1alpha1.AppDeploymentStatus{
+			Phase: v1alpha1.AppDeploymentPhaseReady,
+		},
+	}
+
+	mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&v1alpha1.AppDeployment{}), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opts ...client.GetOption) error {
+			*obj.(*v1alpha1.AppDeployment) = *readyApp
+			return nil
+		}).Times(2)
+
+	mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	res, err := adapter.EnsureDependenciesReady(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: false}, res)
+}
+
+func TestAppDeploymentAdapter_CreateJob_Errors(t *testing.T) {
+	ctx := context.Background()
+	logger := log.FromContext(ctx)
+
+	t.Run("Error setting controller reference", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+
+		appDeployment := validAppDeployment.DeepCopy()
+		adapter := &AppDeploymentHandler{
+			appDeployment: appDeployment,
+			logger:        logger,
+			client:        mockClient,
+			recorder:      mockRecorder,
+		}
+
+		jobTemplate := &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-job",
+			},
+		}
+
+		mockClient.EXPECT().Scheme().Return(runtime.NewScheme()) // Empty scheme will cause error
+
+		err := adapter.createJob(ctx, jobTemplate)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to set controller reference")
+	})
+
+	t.Run("Error creating job", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+
+		scheme := runtime.NewScheme()
+		_ = v1alpha1.AddToScheme(scheme)
+		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
+
+		appDeployment := validAppDeployment.DeepCopy()
+		adapter := &AppDeploymentHandler{
+			appDeployment: appDeployment,
+			logger:        logger,
+			client:        mockClient,
+			recorder:      mockRecorder,
+		}
+
+		jobTemplate := &batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-job",
+			},
+		}
+
+		expectedErr := errors.New("create job error")
+		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(expectedErr)
+
+		err := adapter.createJob(ctx, jobTemplate)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create job")
+	})
+}
+
 func TestAppDeploymentAdapter_EnsureDeployingFinished(t *testing.T) {
 	ctx := context.Background()
 	logger := log.FromContext(ctx)
@@ -475,6 +578,126 @@ func TestAppDeploymentAdapter_EnsureDeployingFinished(t *testing.T) {
 		res, err := adapter.EnsureDeployingFinished(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, res)
+	})
+}
+
+func TestAppDeploymentAdapter_EnsureDeployingFinished_JobErrors(t *testing.T) {
+	ctx := context.Background()
+	logger := log.FromContext(ctx)
+
+	t.Run("Error getting job status", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+
+		appDeployment := validAppDeployment.DeepCopy()
+		appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeploying
+
+		adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+
+		expectedErr := errors.New("get job error")
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).Return(expectedErr)
+
+		result, err := adapter.EnsureDeployingFinished(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "get job error")
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, result)
+	})
+}
+
+func TestAppDeploymentAdapter_EnsureDeployingFinished_FailedJobRecreateErrors(t *testing.T) {
+	ctx := context.Background()
+	logger := log.FromContext(ctx)
+
+	t.Run("Error setting controller reference when recreating failed job", func(t *testing.T) {
+		failedJob := batchv1.Job{
+			Status: batchv1.JobStatus{
+				Conditions: []batchv1.JobCondition{
+					{
+						Type:   batchv1.JobFailed,
+						Status: "True",
+					},
+				},
+				Failed: 1,
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-job",
+				Namespace: "default",
+			},
+		}
+
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorderCtrl := gomock.NewController(t)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockRecorderCtrl)
+
+		scheme := runtime.NewScheme()
+		// Not adding v1alpha1 to scheme to force controller reference error
+		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
+
+		appDeployment := validAppDeployment.DeepCopy()
+		appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeploying
+
+		adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&batchv1.Job{})).DoAndReturn(
+			func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opts ...client.GetOption) error {
+				*obj.(*batchv1.Job) = failedJob
+				return nil
+			})
+		mockClient.EXPECT().Delete(ctx, gomock.Any(), gomock.Any()).Return(nil)
+
+		// No need to expect Create since it should fail at SetControllerReference
+
+		result, err := adapter.EnsureDeployingFinished(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to set controller reference for job")
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, result)
+	})
+
+	t.Run("Error creating job when recreating failed job", func(t *testing.T) {
+		failedJob := batchv1.Job{
+			Status: batchv1.JobStatus{
+				Conditions: []batchv1.JobCondition{
+					{
+						Type:   batchv1.JobFailed,
+						Status: "True",
+					},
+				},
+				Failed: 1,
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-job",
+				Namespace: "default",
+			},
+		}
+
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorderCtrl := gomock.NewController(t)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockRecorderCtrl)
+
+		scheme := runtime.NewScheme()
+		_ = v1alpha1.AddToScheme(scheme)
+		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
+
+		appDeployment := validAppDeployment.DeepCopy()
+		appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeploying
+
+		adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&batchv1.Job{})).DoAndReturn(
+			func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opts ...client.GetOption) error {
+				*obj.(*batchv1.Job) = failedJob
+				return nil
+			})
+		mockClient.EXPECT().Delete(ctx, gomock.Any(), gomock.Any()).Return(nil)
+
+		expectedErr := errors.New("create job error")
+		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(expectedErr)
+
+		result, err := adapter.EnsureDeployingFinished(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create job")
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, result)
 	})
 }
 
@@ -620,5 +843,102 @@ func TestAppDeploymentAdapter_EnsureTeardownFinished(t *testing.T) {
 		res, err := adapter.EnsureTeardownFinished(ctx)
 		assert.NoError(t, err)
 		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, res)
+	})
+}
+
+func TestAppDeploymentAdapter_EnsureTeardownFinished_JobErrors(t *testing.T) {
+	ctx := context.Background()
+	logger := log.FromContext(ctx)
+
+	t.Run("Error deleting succeeded job", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+		mockStatusWriter := mockpkg.NewMockStatusWriter(mockCtrl)
+		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
+
+		appDeployment := validAppDeployment.DeepCopy()
+		appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeleting
+
+		adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+
+		succeededJob := &batchv1.Job{
+			Status: batchv1.JobStatus{
+				Conditions: []batchv1.JobCondition{
+					{
+						Type:   batchv1.JobComplete,
+						Status: "True",
+					},
+					{
+						Type:   batchv1.JobFailed,
+						Status: "False",
+					},
+				},
+				Succeeded: 1,
+			},
+		}
+
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&batchv1.Job{})).DoAndReturn(
+			func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opts ...client.GetOption) error {
+				*obj.(*batchv1.Job) = *succeededJob
+				return nil
+			})
+
+		expectedErr := errors.New("delete job error")
+		mockClient.EXPECT().Delete(ctx, gomock.Any(), gomock.Any()).Return(expectedErr)
+
+		result, err := adapter.EnsureTeardownFinished(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "delete job error")
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, result)
+	})
+
+	t.Run("Error getting job", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+		mockStatusWriter := mockpkg.NewMockStatusWriter(mockCtrl)
+		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
+
+		appDeployment := validAppDeployment.DeepCopy()
+		appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeleting
+
+		adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+
+		expectedErr := errors.New("get job error")
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&batchv1.Job{})).Return(expectedErr)
+
+		result, err := adapter.EnsureTeardownFinished(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "get job error")
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, result)
+	})
+
+	t.Run("Error creating new job", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockCtrl)
+		mockStatusWriter := mockpkg.NewMockStatusWriter(mockCtrl)
+		mockClient.EXPECT().Status().Return(mockStatusWriter).AnyTimes()
+		scheme := runtime.NewScheme()
+		_ = v1alpha1.AddToScheme(scheme)
+		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
+
+		appDeployment := validAppDeployment.DeepCopy()
+		appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeleting
+
+		adapter := NewAppDeploymentHandler(ctx, appDeployment, logger, mockClient, mockRecorder)
+
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.AssignableToTypeOf(&batchv1.Job{})).
+			Return(k8serr.NewNotFound(batchv1.Resource("job"), "test-job"))
+
+		expectedErr := errors.New("create job error")
+		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(expectedErr)
+		mockRecorder.EXPECT().Event(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+
+		result, err := adapter.EnsureTeardownFinished(ctx)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "create job error")
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, result)
 	})
 }

@@ -22,6 +22,8 @@ import (
 )
 
 const (
+	AppDeploymentOwnerKey = ".appDeployment.metadata.controller"
+
 	AppDeploymentFinalizerName = "finalizer.appdeployment.devinfra.goms.io"
 
 	// phase types

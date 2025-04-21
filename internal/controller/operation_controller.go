@@ -86,27 +86,27 @@ func (r *OperationReconciler) ReconcileHandler(ctx context.Context, h handler.Op
 	return ctrl.Result{}, nil
 }
 
+func operationIndexerFunc(rawObj client.Object) []string {
+	// grab the AppDeployment object, extract the owner
+	adp := rawObj.(*v1alpha1.AppDeployment)
+	owner := metav1.GetControllerOf(adp)
+	if owner == nil {
+		return nil
+	}
+	// Make sure the owner is a Operation object
+	if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Operation" {
+		return nil
+	}
+	return []string{owner.Name}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *OperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.AppDeployment{}, v1alpha1.OperationOwnerKey,
-		func(rawObj client.Object) []string {
-			// grab the AppDeployment object, extract the owner
-			adp := rawObj.(*v1alpha1.AppDeployment)
-			owner := metav1.GetControllerOf(adp)
-			if owner == nil {
-				return nil
-			}
-			// Make sure the owner is a Operation object
-			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Operation" {
-				return nil
-			}
-			return []string{owner.Name}
-		}); err != nil {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(),
+		&v1alpha1.AppDeployment{}, v1alpha1.OperationOwnerKey, operationIndexerFunc); err != nil {
 		return err
 	}
-
 	r.recorder = mgr.GetEventRecorderFor("Operation")
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Operation{}).
 		Owns(&v1alpha1.AppDeployment{}).

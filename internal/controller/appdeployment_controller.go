@@ -88,22 +88,21 @@ func (r *AppDeploymentReconciler) ReconcileHandler(ctx context.Context, h handle
 	return ctrl.Result{}, nil
 }
 
-var appDeploymentOwnerKey = ".appDeployment.metadata.controller"
+func appDeploymentIndexerFunc(rawObj client.Object) []string {
+	job := rawObj.(*batchv1.Job)
+	owner := metav1.GetControllerOf(job)
+	if owner == nil {
+		return nil
+	}
+	if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "AppDeployment" {
+		return nil
+	}
+	return []string{owner.Name}
+}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AppDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &batchv1.Job{}, appDeploymentOwnerKey,
-		func(rawObj client.Object) []string {
-			job := rawObj.(*batchv1.Job)
-			owner := metav1.GetControllerOf(job)
-			if owner == nil {
-				return nil
-			}
-			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "AppDeployment" {
-				return nil
-			}
-			return []string{owner.Name}
-		}); err != nil {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &batchv1.Job{}, v1alpha1.AppDeploymentOwnerKey, appDeploymentIndexerFunc); err != nil {
 		return err
 	}
 
