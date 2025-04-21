@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/internal/handler"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -59,17 +60,17 @@ func (r *OperationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	adapter := NewOperationAdapter(ctx, operation, logger, r.Client, r.recorder)
+	adapter := handler.NewOperationHandler(ctx, operation, logger, r.Client, r.recorder)
 	return r.ReconcileHandler(ctx, adapter)
 }
 
-func (r *OperationReconciler) ReconcileHandler(ctx context.Context, adapter OperationAdapterInterface) (ctrl.Result, error) {
+func (r *OperationReconciler) ReconcileHandler(ctx context.Context, h handler.OperationHandlerInterface) (ctrl.Result, error) {
 	operations := []reconciler.ReconcileOperation{
-		adapter.EnsureFinalizer,
-		adapter.EnsureFinalizerRemoved,
-		adapter.EnsureNotExpired,
-		adapter.EnsureAllAppsAreReady,
-		adapter.EnsureAllAppsAreDeleted,
+		h.EnsureFinalizer,
+		h.EnsureFinalizerRemoved,
+		h.EnsureNotExpired,
+		h.EnsureAllAppsAreReady,
+		h.EnsureAllAppsAreDeleted,
 	}
 
 	for _, operation := range operations {
@@ -85,29 +86,27 @@ func (r *OperationReconciler) ReconcileHandler(ctx context.Context, adapter Oper
 	return ctrl.Result{}, nil
 }
 
-var operationOwnerKey = ".operation.metadata.controller"
+func operationIndexerFunc(rawObj client.Object) []string {
+	// grab the AppDeployment object, extract the owner
+	adp := rawObj.(*v1alpha1.AppDeployment)
+	owner := metav1.GetControllerOf(adp)
+	if owner == nil {
+		return nil
+	}
+	// Make sure the owner is a Operation object
+	if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Operation" {
+		return nil
+	}
+	return []string{owner.Name}
+}
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *OperationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.AppDeployment{}, operationOwnerKey,
-		func(rawObj client.Object) []string {
-			// grab the AppDeployment object, extract the owner
-			adp := rawObj.(*v1alpha1.AppDeployment)
-			owner := metav1.GetControllerOf(adp)
-			if owner == nil {
-				return nil
-			}
-			// Make sure the owner is a Operation object
-			if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Operation" {
-				return nil
-			}
-			return []string{owner.Name}
-		}); err != nil {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(),
+		&v1alpha1.AppDeployment{}, v1alpha1.OperationOwnerKey, operationIndexerFunc); err != nil {
 		return err
 	}
-
 	r.recorder = mgr.GetEventRecorderFor("Operation")
-
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Operation{}).
 		Owns(&v1alpha1.AppDeployment{}).

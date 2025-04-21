@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
+	"github.com/Azure/operation-cache-controller/internal/handler"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -65,18 +66,17 @@ func (r *CacheReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	adapter := NewCacheAdapter(ctx, cache, logger, r.Client, r.Scheme, r.recorder, ctrl.SetControllerReference)
-	return r.reconcileHandler(ctx, adapter)
+	return r.reconcileHandler(ctx, handler.NewCacheHandler(ctx, cache, logger, r.Client, r.Scheme, r.recorder, ctrl.SetControllerReference))
 }
 
-func (r *CacheReconciler) reconcileHandler(ctx context.Context, adapter CacheAdapterInterface) (ctrl.Result, error) {
+func (r *CacheReconciler) reconcileHandler(ctx context.Context, h handler.CacheHandlerInterface) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
 	operations := []reconciler.ReconcileOperation{
-		adapter.CheckCacheExpiry,
-		adapter.EnsureCacheInitialized,
-		adapter.CalculateKeepAliveCount,
-		adapter.AdjustCache,
+		h.CheckCacheExpiry,
+		h.EnsureCacheInitialized,
+		h.CalculateKeepAliveCount,
+		h.AdjustCache,
 	}
 
 	for _, operation := range operations {
@@ -93,8 +93,6 @@ func (r *CacheReconciler) reconcileHandler(ctx context.Context, adapter CacheAda
 	logger.Info("cache reconcile completed, requeue after 60 seconds")
 	return ctrl.Result{RequeueAfter: defaultCacheCheckInterval}, nil
 }
-
-var cacheOwnerKey = ".metadata.controller.cache"
 
 func cacheOperationIndexerFunc(obj client.Object) []string {
 	// grab the operation object, extract the owner...
@@ -113,7 +111,7 @@ func cacheOperationIndexerFunc(obj client.Object) []string {
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *CacheReconciler) SetupWithManager(mgr ctrl.Manager) error { // +gocover:ignore:block init controller
-	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.Operation{}, cacheOwnerKey, cacheOperationIndexerFunc); err != nil { // +gocover:ignore:block init controller
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &v1alpha1.Operation{}, v1alpha1.CacheOwnerKey, cacheOperationIndexerFunc); err != nil { // +gocover:ignore:block init controller
 		return err
 	}
 	// +gocover:ignore:block init controller

@@ -20,6 +20,30 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	RequirementOwnerKey = ".requirement.metadata.controller"
+
+	RequirementFinalizerName = "finalizer.requirement.devinfra.goms.io"
+
+	RequirementConditionRequirementInitialized  = "RequirementInitialized"
+	RequirementConditionCacheResourceFound      = "CacheCRFound"
+	RequirementConditionCachedOperationAcquired = "CachedOpAcquired"
+	RequirementConditionOperationReady          = "OperationReady"
+
+	RequirementConditionReasonNoOperationAvailable = "NoOperationAvailable"
+	RequirementConditionReasonCacheCRNotFound      = "CacheCRNotFound"
+	RequirementConditionReasonCacheCRFound         = "CacheCRFound"
+	RequirementConditionReasonCacheHit             = "CacheHit"
+	RequirementConditionReasonCacheMiss            = "CacheMiss"
+
+	RequirementPhaseEmpty         = ""
+	RequirementPhaseCacheChecking = "CacheChecking"
+	RequirementPhaseOperating     = "Operating"
+	RequirementPhaseReady         = "Ready"
+	RequirementPhaseDeleted       = "Deleted"
+	RequirementPhaseDeleting      = "Deleting"
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 

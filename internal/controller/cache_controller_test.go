@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -62,7 +62,7 @@ func TestReconcileHandler(t *testing.T) {
 			Scheme: scheme,
 		}
 		mockCacheAdapterCtrl := gomock.NewController(t)
-		cacheAdapter := mocks.NewMockCacheAdapterInterface(mockCacheAdapterCtrl)
+		cacheAdapter := mocks.NewMockCacheHandlerInterface(mockCacheAdapterCtrl)
 		cacheAdapter.EXPECT().CheckCacheExpiry(ctx).Return(reconciler.OperationResult{}, nil)
 		cacheAdapter.EXPECT().EnsureCacheInitialized(ctx).Return(reconciler.OperationResult{}, nil)
 		cacheAdapter.EXPECT().CalculateKeepAliveCount(ctx).Return(reconciler.OperationResult{}, nil)
@@ -83,7 +83,7 @@ func TestReconcileHandler(t *testing.T) {
 			Scheme: scheme,
 		}
 		mockCacheAdapterCtrl := gomock.NewController(t)
-		cacheAdapter := mocks.NewMockCacheAdapterInterface(mockCacheAdapterCtrl)
+		cacheAdapter := mocks.NewMockCacheHandlerInterface(mockCacheAdapterCtrl)
 		cacheAdapter.EXPECT().CheckCacheExpiry(ctx).Return(reconciler.OperationResult{CancelRequest: true}, nil)
 		res, err := cacheReconciler.reconcileHandler(ctx, cacheAdapter)
 		assert.NoError(t, err)
@@ -101,7 +101,7 @@ func TestReconcileHandler(t *testing.T) {
 			Scheme: scheme,
 		}
 		mockCacheAdapterCtrl := gomock.NewController(t)
-		cacheAdapter := mocks.NewMockCacheAdapterInterface(mockCacheAdapterCtrl)
+		cacheAdapter := mocks.NewMockCacheHandlerInterface(mockCacheAdapterCtrl)
 		cacheAdapter.EXPECT().CheckCacheExpiry(ctx).Return(reconciler.OperationResult{}, assert.AnError)
 		_, err := cacheReconciler.reconcileHandler(ctx, cacheAdapter)
 		assert.NotNil(t, err)

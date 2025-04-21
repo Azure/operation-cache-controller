@@ -33,8 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	ctrlmocks "github.com/Azure/operation-cache-controller/internal/controller/mocks"
-	mockpkg "github.com/Azure/operation-cache-controller/internal/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	hmocks "github.com/Azure/operation-cache-controller/internal/handler/mocks"
+	utilsmock "github.com/Azure/operation-cache-controller/internal/utils/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -87,9 +88,9 @@ var _ = Describe("AppDeployment Controller", func() {
 		const resourceName = "test-resource"
 		var (
 			mockRecorderCtrl *gomock.Controller
-			mockRecorder     *mockpkg.MockEventRecorder
+			mockRecorder     *utilsmock.MockEventRecorder
 			mockAdapterCtrl  *gomock.Controller
-			mockAdapter      *ctrlmocks.MockAppDeploymentAdapterInterface
+			mockAdapter      *hmocks.MockAppDeploymentHandlerInterface
 		)
 		ctx := context.Background()
 
@@ -121,9 +122,9 @@ var _ = Describe("AppDeployment Controller", func() {
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
 			mockRecorderCtrl = gomock.NewController(GinkgoT())
-			mockRecorder = mockpkg.NewMockEventRecorder(mockRecorderCtrl)
+			mockRecorder = utilsmock.NewMockEventRecorder(mockRecorderCtrl)
 			mockAdapterCtrl = gomock.NewController(GinkgoT())
-			mockAdapter = ctrlmocks.NewMockAppDeploymentAdapterInterface(mockAdapterCtrl)
+			mockAdapter = hmocks.NewMockAppDeploymentHandlerInterface(mockAdapterCtrl)
 		})
 
 		AfterEach(func() {
@@ -142,7 +143,7 @@ var _ = Describe("AppDeployment Controller", func() {
 				Scheme:   k8sClient.Scheme(),
 				recorder: mockRecorder,
 			}
-			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+			ctx = context.WithValue(ctx, handler.AppdeploymentHandlerContextKey{}, mockAdapter)
 
 			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{}, nil)
 			mockAdapter.EXPECT().EnsureFinalizer(gomock.Any()).Return(reconciler.OperationResult{}, nil)
@@ -165,7 +166,7 @@ var _ = Describe("AppDeployment Controller", func() {
 				Scheme:   k8sClient.Scheme(),
 				recorder: mockRecorder,
 			}
-			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+			ctx = context.WithValue(ctx, handler.AppdeploymentHandlerContextKey{}, mockAdapter)
 
 			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{
 				CancelRequest: true,
@@ -184,7 +185,7 @@ var _ = Describe("AppDeployment Controller", func() {
 				Scheme:   k8sClient.Scheme(),
 				recorder: mockRecorder,
 			}
-			ctx = context.WithValue(ctx, appdeploymentAdapterContextKey{}, mockAdapter)
+			ctx = context.WithValue(ctx, handler.AppdeploymentHandlerContextKey{}, mockAdapter)
 
 			mockAdapter.EXPECT().EnsureApplicationValid(gomock.Any()).Return(reconciler.OperationResult{}, errors.NewServiceUnavailable("test error"))
 
@@ -192,6 +193,84 @@ var _ = Describe("AppDeployment Controller", func() {
 				NamespacedName: typeNamespacedName,
 			})
 			Expect(errors.IsServiceUnavailable(err)).To(BeTrue(), "expected error is ServiceUnavailable")
+		})
+	})
+
+	Context("appDeploymentIndexerFunc tests", func() {
+		It("should return nil for Job without owner", func() {
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-without-owner",
+					Namespace: "default",
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(BeNil())
+		})
+
+		It("should return nil for Job with non-AppDeployment owner", func() {
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-with-wrong-owner",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Pod",
+							Name:       "owner-pod",
+							UID:        "12345",
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(BeNil())
+		})
+
+		It("should return owner name for Job with AppDeployment owner", func() {
+			ownerName := "test-appdeployment"
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-with-appdeployment-owner",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "AppDeployment",
+							Name:       ownerName,
+							UID:        "67890",
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(Equal([]string{ownerName}))
+		})
+
+		It("should return nil for Job with AppDeployment owner reference that is not controller", func() {
+			job := &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "job-with-non-controller-appdeployment",
+					Namespace: "default",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "AppDeployment",
+							Name:       "test-appdeployment",
+							UID:        "13579",
+							Controller: nil, // Not a controller reference
+						},
+					},
+				},
+			}
+
+			result := appDeploymentIndexerFunc(job)
+			Expect(result).To(BeNil())
 		})
 	})
 })

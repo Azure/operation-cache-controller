@@ -35,7 +35,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	"github.com/Azure/operation-cache-controller/internal/handler/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -122,7 +123,7 @@ var _ = Describe("Requirement Controller", func() {
 			mockClientCtrl   *gomock.Controller
 			mockRecorderCtrl *gomock.Controller
 			mockAdapterCtrl  *gomock.Controller
-			mockAdapter      *mocks.MockRequirementAdapterInterface
+			mockAdapter      *mocks.MockRequirementHandlerInterface
 
 			requirementReconciler *RequirementReconciler
 
@@ -136,7 +137,7 @@ var _ = Describe("Requirement Controller", func() {
 			mockClientCtrl = gomock.NewController(GinkgoT())
 			mockRecorderCtrl = gomock.NewController(GinkgoT())
 			mockAdapterCtrl = gomock.NewController(GinkgoT())
-			mockAdapter = mocks.NewMockRequirementAdapterInterface(mockAdapterCtrl)
+			mockAdapter = mocks.NewMockRequirementHandlerInterface(mockAdapterCtrl)
 
 			requirementReconciler = &RequirementReconciler{
 				Client: k8sClient,
@@ -157,7 +158,7 @@ var _ = Describe("Requirement Controller", func() {
 			mockAdapter.EXPECT().EnsureCachedOperationAcquired(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 			mockAdapter.EXPECT().EnsureOperationReady(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 
-			result, err := requirementReconciler.Reconcile(context.WithValue(context.Background(), requirementAdapterContextKey{}, mockAdapter), ctrl.Request{
+			result, err := requirementReconciler.Reconcile(context.WithValue(context.Background(), handler.RequiremenContextKey{}, mockAdapter), ctrl.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -169,7 +170,7 @@ var _ = Describe("Requirement Controller", func() {
 			testErr := fmt.Errorf("test-error")
 			mockAdapter.EXPECT().EnsureNotExpired(gomock.Any()).Return(reconciler.RequeueWithError(testErr))
 
-			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, requirementAdapterContextKey{}, mockAdapter), ctrl.Request{
+			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, handler.RequiremenContextKey{}, mockAdapter), ctrl.Request{
 				NamespacedName: key,
 			})
 			Expect(err).To(MatchError(testErr))
@@ -184,7 +185,7 @@ var _ = Describe("Requirement Controller", func() {
 				CancelRequest: true,
 			}, nil)
 
-			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, requirementAdapterContextKey{}, mockAdapter), ctrl.Request{
+			result, err := requirementReconciler.Reconcile(context.WithValue(ctx, handler.RequiremenContextKey{}, mockAdapter), ctrl.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -267,6 +268,78 @@ var _ = Describe("Requirement Controller", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).Should(Equal(reconcile.Result{RequeueAfter: reconciler.DefaultRequeueDelay}))
+		})
+	})
+
+	Context("Testing requirementIndexerFunc", func() {
+		It("Should return the owner name for an Operation owned by a Requirement", func() {
+			ownerName := "test-requirement-owner"
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "Requirement",
+							Name:       ownerName,
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(HaveLen(1))
+			Expect(indexKeys[0]).To(Equal(ownerName))
+		})
+
+		It("Should return nil if the Operation has no owner", func() {
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation-no-owner",
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(BeNil())
+		})
+
+		It("Should return nil if the Operation is owned by a non-Requirement resource", func() {
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation-wrong-owner",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "v1",
+							Kind:       "Pod",
+							Name:       "some-pod",
+							Controller: &[]bool{true}[0],
+						},
+					},
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(BeNil())
+		})
+
+		It("Should return nil if the owner is a Requirement but not the controller", func() {
+			operation := &v1alpha1.Operation{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-operation-not-controlled",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: v1alpha1.GroupVersion.String(),
+							Kind:       "Requirement",
+							Name:       "non-controller-requirement",
+							Controller: &[]bool{false}[0],
+						},
+					},
+				},
+			}
+
+			indexKeys := requirementIndexerFunc(operation)
+			Expect(indexKeys).To(BeNil())
 		})
 	})
 })

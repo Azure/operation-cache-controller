@@ -19,10 +19,12 @@ package controller
 import (
 	"context"
 	"fmt"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
-	"github.com/Azure/operation-cache-controller/internal/controller/mocks"
+	"github.com/Azure/operation-cache-controller/internal/handler"
+	"github.com/Azure/operation-cache-controller/internal/handler/mocks"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -104,7 +107,7 @@ var _ = Describe("Operation Controller", func() {
 			mockClientCtrl   *gomock.Controller
 			mockRecorderCtrl *gomock.Controller
 			mockAdapterCtrl  *gomock.Controller
-			mockAdapter      *mocks.MockOperationAdapterInterface
+			mockAdapter      *mocks.MockOperationHandlerInterface
 
 			operationReconciler *OperationReconciler
 
@@ -118,7 +121,7 @@ var _ = Describe("Operation Controller", func() {
 			mockClientCtrl = gomock.NewController(GinkgoT())
 			mockRecorderCtrl = gomock.NewController(GinkgoT())
 			mockAdapterCtrl = gomock.NewController(GinkgoT())
-			mockAdapter = mocks.NewMockOperationAdapterInterface(mockAdapterCtrl)
+			mockAdapter = mocks.NewMockOperationHandlerInterface(mockAdapterCtrl)
 			operationReconciler = &OperationReconciler{
 				Client: k8sClient,
 				Scheme: k8sClient.Scheme(),
@@ -141,7 +144,7 @@ var _ = Describe("Operation Controller", func() {
 			mockAdapter.EXPECT().EnsureAllAppsAreReady(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 			mockAdapter.EXPECT().EnsureAllAppsAreDeleted(gomock.Any()).Return(reconciler.ContinueOperationResult(), nil)
 
-			res, err := operationReconciler.Reconcile(context.WithValue(ctx, operationAdapterContextKey{}, mockAdapter), reconcile.Request{
+			res, err := operationReconciler.Reconcile(context.WithValue(ctx, handler.OperationContextKey{}, mockAdapter), reconcile.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -154,7 +157,7 @@ var _ = Describe("Operation Controller", func() {
 			testErr := fmt.Errorf("test-error")
 			mockAdapter.EXPECT().EnsureFinalizer(gomock.Any()).Return(reconciler.ContinueOperationResult(), testErr)
 
-			res, err := operationReconciler.Reconcile(context.WithValue(ctx, operationAdapterContextKey{}, mockAdapter), reconcile.Request{
+			res, err := operationReconciler.Reconcile(context.WithValue(ctx, handler.OperationContextKey{}, mockAdapter), reconcile.Request{
 				NamespacedName: key,
 			})
 			Expect(err).To(HaveOccurred())
@@ -169,7 +172,7 @@ var _ = Describe("Operation Controller", func() {
 				CancelRequest: true,
 			}, nil)
 
-			res, err := operationReconciler.Reconcile(context.WithValue(ctx, operationAdapterContextKey{}, mockAdapter), reconcile.Request{
+			res, err := operationReconciler.Reconcile(context.WithValue(ctx, handler.OperationContextKey{}, mockAdapter), reconcile.Request{
 				NamespacedName: key,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -241,3 +244,102 @@ var _ = Describe("Operation Controller", func() {
 		})
 	})
 })
+
+func TestOperationIndexerFunc(t *testing.T) {
+	// Test case 1: AppDeployment without an owner reference
+	t.Run("AppDeployment without an owner reference", func(t *testing.T) {
+		appDeployment := &v1alpha1.AppDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-without-owner",
+				Namespace: "default",
+			},
+		}
+		result := operationIndexerFunc(appDeployment)
+		assert.Nil(t, result, "Expected nil for AppDeployment without owner reference")
+	})
+
+	// Test case 2: AppDeployment with a non-controller owner reference
+	t.Run("AppDeployment with a non-controller owner reference", func(t *testing.T) {
+		appDeployment := &v1alpha1.AppDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-with-non-controller-owner",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: v1alpha1.GroupVersion.String(),
+						Kind:       "Operation",
+						Name:       "test-operation",
+						UID:        "12345",
+						Controller: nil, // Not a controller reference
+					},
+				},
+			},
+		}
+		result := operationIndexerFunc(appDeployment)
+		assert.Nil(t, result, "Expected nil for AppDeployment with non-controller owner reference")
+	})
+
+	// Test case 3: AppDeployment with an owner that's not an Operation
+	t.Run("AppDeployment with an owner that's not an Operation", func(t *testing.T) {
+		appDeployment := &v1alpha1.AppDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-with-wrong-owner-kind",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: v1alpha1.GroupVersion.String(),
+						Kind:       "SomeOtherKind",
+						Name:       "test-owner",
+						UID:        "12345",
+						Controller: &[]bool{true}[0],
+					},
+				},
+			},
+		}
+		result := operationIndexerFunc(appDeployment)
+		assert.Nil(t, result, "Expected nil for AppDeployment with wrong owner kind")
+	})
+
+	// Test case 4: AppDeployment with a valid Operation controller reference
+	t.Run("AppDeployment with a valid Operation controller reference", func(t *testing.T) {
+		operationName := "test-operation"
+		appDeployment := &v1alpha1.AppDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-with-operation-owner",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: v1alpha1.GroupVersion.String(),
+						Kind:       "Operation",
+						Name:       operationName,
+						UID:        "12345",
+						Controller: &[]bool{true}[0],
+					},
+				},
+			},
+		}
+		result := operationIndexerFunc(appDeployment)
+		assert.Equal(t, []string{operationName}, result, "Expected owner name for AppDeployment with Operation controller reference")
+	})
+
+	// Test case 5: AppDeployment with wrong API version owner reference
+	t.Run("AppDeployment with wrong API version owner reference", func(t *testing.T) {
+		appDeployment := &v1alpha1.AppDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "app-with-wrong-api-version",
+				Namespace: "default",
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "wrong.api/v1",
+						Kind:       "Operation",
+						Name:       "test-operation",
+						UID:        "12345",
+						Controller: &[]bool{true}[0],
+					},
+				},
+			},
+		}
+		result := operationIndexerFunc(appDeployment)
+		assert.Nil(t, result, "Expected nil for AppDeployment with wrong API version")
+	})
+}
