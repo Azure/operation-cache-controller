@@ -42,6 +42,9 @@ var (
 				},
 			},
 		},
+		Status: v1alpha1.OperationStatus{
+			OperationID: "test-operation",
+		},
 	}
 	emptyAppDeploymentList = &v1alpha1.AppDeploymentList{}
 
@@ -49,7 +52,7 @@ var (
 		Items: []v1alpha1.AppDeployment{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-app1",
+					Name:      "test-operation-test-app1",
 					Namespace: "default",
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
@@ -64,7 +67,7 @@ var (
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-app2",
+					Name:      "test-operation-test-app2",
 					Namespace: "default",
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
@@ -83,7 +86,7 @@ var (
 		Items: []v1alpha1.AppDeployment{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-app2",
+					Name:      "test-operation-test-app2",
 					Namespace: "default",
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
@@ -115,7 +118,7 @@ var (
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-app3",
+					Name:      "test-operation-test-app3",
 					Namespace: "default",
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
@@ -277,14 +280,14 @@ func TestOperationHandler_EnsureAllAppsAreReady(t *testing.T) {
 		operation.Status.Phase = v1alpha1.OperationPhaseReconciling
 
 		appList := emptyAppDeploymentList.DeepCopy()
-		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *v1alpha1.AppDeploymentList, opts ...interface{}) error {
+		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *v1alpha1.AppDeploymentList, opts ...any) error {
 			*list = *changedValidAppDeploymentList
 			return nil
 		})
 		scheme := runtime.NewScheme()
 		utilruntime.Must(v1alpha1.AddToScheme(scheme))
 		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opt ...interface{}) error {
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opt ...any) error {
 			*obj.(*v1alpha1.AppDeployment) = v1alpha1.AppDeployment{}
 			return nil
 		}).AnyTimes()
