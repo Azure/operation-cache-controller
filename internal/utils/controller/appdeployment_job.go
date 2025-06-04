@@ -13,23 +13,20 @@ import (
 const (
 	JobTypeProvision = "provision"
 	JobTypeTeardown  = "teardown"
+	JobNamePattern   = "%s-%s-%s" // jobType-appName-operationId
 )
 
 var (
 	backOffLimit            int32 = 10
 	ttlSecondsAfterFinished int32 = 3600
 	MaxAppNameLength        int   = 36
-	MaxOpIdLength           int   = 18
 )
 
-func validJName(appName, operationId, jobType string) string {
-	if len(appName) > MaxAppNameLength {
-		appName = appName[:MaxAppNameLength]
+func validJobName(appName, jobType string) string {
+	originName := jobType + "-" + appName
+	if len(originName) > MaxResourceNameLength {
+		return originName[:MaxResourceNameLength]
 	}
-	if len(operationId) > MaxOpIdLength {
-		operationId = operationId[:MaxOpIdLength]
-	}
-	originName := jobType + "-" + appName + "-" + operationId
 	return originName
 }
 
@@ -42,16 +39,16 @@ func TeardownJobFromAppDeploymentSpec(appDeployment *v1alpha1.AppDeployment) *ba
 }
 
 func GetProvisionJobName(appDeployment *v1alpha1.AppDeployment) string {
-	return validJName(appDeployment.Name, appDeployment.Spec.OpId, JobTypeProvision)
+	return validJobName(appDeployment.Name, JobTypeProvision)
 }
 
 func GetTeardownJobName(appDeployment *v1alpha1.AppDeployment) string {
-	return validJName(appDeployment.Name, appDeployment.Spec.OpId, JobTypeTeardown)
+	return validJobName(appDeployment.Name, JobTypeTeardown)
 }
 
 func jobFromAppDeploymentSpec(appDeployment *v1alpha1.AppDeployment, suffix string) *batchv1.Job {
 	ops := jobOptions{
-		name:        validJName(appDeployment.Name, appDeployment.Spec.OpId, suffix),
+		name:        validJobName(appDeployment.Name, suffix),
 		namespace:   appDeployment.Namespace,
 		labels:      appDeployment.Labels,
 		jobSpec:     appDeployment.Spec.Provision,
@@ -117,14 +114,16 @@ func CheckJobStatus(ctx context.Context, job *batchv1.Job) JobStatus {
 }
 
 func OperationScopedAppDeployment(appName, opId string) string {
+	originalName := opId + "-" + appName
+	if len(originalName) < MaxResourceNameLength {
+		return originalName
+	}
 	if len(appName) > MaxAppNameLength {
 		appName = appName[:MaxAppNameLength]
 	}
-	if len(opId) > MaxOpIdLength {
-		opId = opId[:MaxOpIdLength]
-	}
-	if opId == "" {
-		return appName
+	resisualLength := MaxResourceNameLength - len(appName) - 1 // -1 for the hyphen
+	if len(opId) > resisualLength {
+		opId = opId[:resisualLength]
 	}
 	return opId + "-" + appName
 }

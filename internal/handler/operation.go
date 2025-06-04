@@ -14,6 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"slices"
+
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctrlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 )
@@ -57,13 +59,7 @@ func NewOperationHandler(ctx context.Context, operation *v1alpha1.Operation, log
 }
 
 func (o *OperationHandler) phaseIn(phases ...string) bool {
-
-	for _, phase := range phases {
-		if phase == o.operation.Status.Phase {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(phases, o.operation.Status.Phase)
 }
 
 func (o *OperationHandler) EnsureNotExpired(ctx context.Context) (reconciler.OperationResult, error) {
