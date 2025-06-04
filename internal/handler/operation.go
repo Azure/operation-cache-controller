@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
@@ -13,8 +14,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
-	"slices"
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	ctrlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
