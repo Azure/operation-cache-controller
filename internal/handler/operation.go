@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
@@ -57,13 +58,7 @@ func NewOperationHandler(ctx context.Context, operation *v1alpha1.Operation, log
 }
 
 func (o *OperationHandler) phaseIn(phases ...string) bool {
-
-	for _, phase := range phases {
-		if phase == o.operation.Status.Phase {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(phases, o.operation.Status.Phase)
 }
 
 func (o *OperationHandler) EnsureNotExpired(ctx context.Context) (reconciler.OperationResult, error) {

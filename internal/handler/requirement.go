@@ -286,7 +286,7 @@ func (r *RequirementHandler) EnsureOperationReady(ctx context.Context) (reconcil
 	}
 	if r.rqutils.IsCacheMissed(r.requirement) {
 		r.logger.V(1).Info("cache missed, creating operation")
-		r.requirement.Status.OperationName = r.requirement.Name + "-" + "operation"
+		r.requirement.Status.OperationName = r.requirement.Name // reset operation name to requirement name
 	}
 	// check operation status
 	if op, err := r.getOperation(); err == nil {
