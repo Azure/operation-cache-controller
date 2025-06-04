@@ -2,6 +2,6 @@ package log
 
 const (
 	// log keys
-	AppDeploymentJobName = "jobName"
-	AppDeploymentName    = "appDeploymentName"
+	FieldKeyAppDeploymentJobName = "jobName"
+	AppDeploymentName            = "appDeploymentName"
 )

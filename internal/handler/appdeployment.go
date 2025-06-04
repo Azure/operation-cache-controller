@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
@@ -20,6 +22,10 @@ import (
 )
 
 type AppdeploymentHandlerContextKey struct{}
+
+var (
+	ErrJobFailed = errors.New("job failed")
+)
 
 //go:generate mockgen -destination=./mocks/mock_appdeployment.go -package=mocks github.com/Azure/operation-cache-controller/internal/handler AppDeploymentHandlerInterface
 type AppDeploymentHandlerInterface interface {
@@ -166,7 +172,15 @@ func (a *AppDeploymentHandler) initializeJobAndAwaitCompletion(ctx context.Conte
 			a.recorder.Event(a.appDeployment, "Error", "FailedDeleteJob", err.Error())
 			return fmt.Errorf("failed to delete job %s: %w", job.Name, err)
 		}
-		// create a new job
+		// complete the job if it is a teardown job
+		if strings.HasPrefix(jobTemplate.Name, ctrlutils.JobTypeTeardown) {
+			a.logger.Error(ErrJobFailed, "teardown job failed", log.FieldKeyAppDeploymentJobName, jobTemplate.Name)
+			a.recorder.Event(a.appDeployment, "Warning", "TeardownJobFailed", fmt.Sprintf("Teardown job %s failed, requeuing for retry", jobTemplate.Name))
+			// return nil to make the teardown job complete
+			return nil
+		}
+
+		// create a new job if it is not a teardown job
 		if err := ctrl.SetControllerReference(a.appDeployment, jobTemplate, a.client.Scheme()); err != nil {
 			return fmt.Errorf("failed to set controller reference for job %s: %w", job.Name, err)
 		}
@@ -203,7 +217,7 @@ func (a *AppDeploymentHandler) EnsureDeployingFinished(ctx context.Context) (rec
 		a.appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseReady
 		return reconciler.RequeueOnErrorOrContinue(a.client.Status().Update(ctx, a.appDeployment))
 	case errJobNotCompleted:
-		a.logger.V(1).WithValues(log.AppDeploymentJobName, provisionJob.Name).Info("provision job is not completed yet")
+		a.logger.V(1).WithValues(log.FieldKeyAppDeploymentJobName, provisionJob.Name).Info("provision job is not completed yet")
 		return reconciler.Requeue()
 	default:
 		a.logger.Error(err, "provision job failed %s", provisionJob.Name)
@@ -224,10 +238,10 @@ func (a *AppDeploymentHandler) EnsureTeardownFinished(ctx context.Context) (reco
 		a.appDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseDeleted
 		return reconciler.RequeueOnErrorOrContinue(a.client.Status().Update(ctx, a.appDeployment))
 	case errJobNotCompleted:
-		a.logger.V(1).WithValues(log.AppDeploymentJobName, teardownJob.Name).Info("teardown job is not completed yet")
+		a.logger.V(1).WithValues(log.FieldKeyAppDeploymentJobName, teardownJob.Name).Info("teardown job is not completed yet")
 		return reconciler.Requeue()
 	default:
-		a.logger.WithValues(log.AppDeploymentJobName, teardownJob.Name).Error(err, "teardown job failed %s")
+		a.logger.WithValues(log.FieldKeyAppDeploymentJobName, teardownJob.Name).Error(err, "teardown job failed %s")
 		return reconciler.RequeueWithError(err)
 	}
 }
