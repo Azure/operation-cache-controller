@@ -728,6 +728,10 @@ func TestAppDeploymentAdapter_EnsureTeardownFinished(t *testing.T) {
 					Type:   batchv1.JobFailed,
 					Status: "True",
 				},
+				{
+					Type:   batchv1.JobComplete,
+					Status: "True",
+				},
 			},
 			Failed: 1,
 		},
@@ -837,13 +841,13 @@ func TestAppDeploymentAdapter_EnsureTeardownFinished(t *testing.T) {
 				return nil
 			})
 		mockClient.EXPECT().Delete(ctx, gomock.Any(), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		mockRecorder.EXPECT().Event(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockRecorder.EXPECT().Event(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		res, err := adapter.EnsureTeardownFinished(ctx)
 		assert.NoError(t, err)
-		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: true}, res)
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, RequeueRequest: false}, res)
 	})
+
 }
 
 func TestAppDeploymentAdapter_EnsureTeardownFinished_JobErrors(t *testing.T) {

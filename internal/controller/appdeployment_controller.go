@@ -58,7 +58,7 @@ type AppDeploymentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.20.4/pkg/reconcile
 func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := klog.FromContext(ctx).WithValues(log.AppDeploymentJobName, req.NamespacedName)
+	logger := klog.FromContext(ctx).WithValues(log.FieldKeyAppDeploymentJobName, req.NamespacedName)
 	appdeployment := &v1alpha1.AppDeployment{}
 	if err := r.Get(ctx, req.NamespacedName, appdeployment); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
