@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM mcr.microsoft.com/oss/go/microsoft/golang:1.23 AS builder
+FROM mcr.microsoft.com/oss/go/microsoft/golang:1.24 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
