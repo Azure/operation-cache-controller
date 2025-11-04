@@ -66,7 +66,7 @@ Each controller uses:
 ### Code Quality
 - `make fmt` - Format Go code with gofmt
 - `make vet` - Run go vet to catch suspicious constructs
-- `make lint` - Run golangci-lint with project configuration (42 linters enabled)
+- `make lint` - Run golangci-lint with project configuration (18 linters enabled)
 - `make lint-fix` - Auto-fix linting issues where possible
 
 ### Code Generation and Mocks
