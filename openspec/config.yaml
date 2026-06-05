@@ -1,0 +1,19 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  Tech stack: Go 1.26, kubebuilder v4, controller-runtime, Ginkgo/Gomega, gomock.
+  Domain: Kubernetes operator for Requirement, Operation, AppDeployment, and Cache CRDs in controller.azure.github.com/v1alpha1.
+  Conventions: document externally observable CRD behavior in OpenSpec; future reconciler or API behavior changes should ship spec deltas.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

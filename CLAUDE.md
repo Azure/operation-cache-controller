@@ -99,10 +99,10 @@ Each controller uses:
 
 ## Development Environment Requirements
 
-- **Go**: v1.24.0+ (as specified in go.mod and Dockerfile)
+- **Go**: v1.26.0+ (as specified in go.mod and Dockerfile; toolchain pinned to go1.26.3)
 - **Docker**: For building container images
 - **Kind**: For running E2E tests locally
-- **Tools**: controller-gen v0.17.2, kustomize v5.6.0, golangci-lint v1.63.4 (auto-installed via Makefile)
+- **Tools**: controller-gen v0.17.2, kustomize v5.6.0, golangci-lint v2.12.2 (auto-installed via Makefile)
 
 ## Testing Strategy
 

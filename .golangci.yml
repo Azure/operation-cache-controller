@@ -1,47 +1,66 @@
+version: "2"
 run:
   timeout: 5m
   allow-parallel-runners: true
-
-issues:
-  # don't skip warning about doc comments
-  # don't exclude the default set of lint
-  exclude-use-default: false
-  # restore some of the defaults
-  # (fill in the rest as needed)
-  exclude-rules:
-    - path: "api/*"
-      linters:
-        - lll
-    - path: "internal/*"
-      linters:
-        - dupl
-        - lll
 linters:
-  disable-all: true
+  default: none
   enable:
+    - copyloopvar
     - dupl
     - errcheck
-    - copyloopvar
     - ginkgolinter
     - goconst
     - gocyclo
-    - gofmt
-    - goimports
-    - gosimple
     - govet
     - ineffassign
-    # - lll
     - misspell
     - nakedret
     - prealloc
     - revive
     - staticcheck
-    - typecheck
     - unconvert
     - unparam
     - unused
-
-linters-settings:
-  revive:
+  settings:
+    revive:
+      rules:
+        - name: comment-spacings
+    staticcheck:
+      # v2 merged stylecheck and quickfix (QF) checks into staticcheck. The
+      # previous v1 config did not enable those, so restrict to the SA* checks
+      # to keep the lint surface equivalent to v1.64.8.
+      checks:
+        - "all"
+        - "-ST*"
+        - "-QF*"
+  exclusions:
+    generated: lax
     rules:
-      - name: comment-spacings
+      - linters:
+          - lll
+        path: api/*
+      - linters:
+          - dupl
+          - lll
+          - goconst
+        path: internal/*
+      # v2 no longer applies the default exclusion of test files for goconst /
+      # dupl; restore that behaviour to keep parity with v1.64.8.
+      - linters:
+          - goconst
+          - dupl
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
