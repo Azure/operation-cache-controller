@@ -27,7 +27,7 @@ jobs:
 
       - name: check test coverage
         if: github.ref == 'refs/heads/main'
-        uses: vladopajic/go-test-coverage@f484eec846448c97c777a26f8b58c5a69a327e12 # v2.20.0
+        uses: vladopajic/go-test-coverage@6890500b00a7e5862e54662c04ea9fa7c799ce1e # v2.23.0
         with:
           config: ./.github/.testcoverage.yml
           git-branch: badges
@@ -35,6 +35,6 @@ jobs:
 
       - name: Check test coverage
         if: github.ref != 'refs/heads/main'
-        uses: vladopajic/go-test-coverage@f484eec846448c97c777a26f8b58c5a69a327e12 # v2.20.0
+        uses: vladopajic/go-test-coverage@6890500b00a7e5862e54662c04ea9fa7c799ce1e # v2.23.0
         with:
           config: ./.github/.testcoverage.yml
