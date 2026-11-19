@@ -27,6 +27,12 @@ func (ou OperationHelper) ClearConditions(operation *v1alpha1.Operation) {
 	operation.Status.Conditions = []metav1.Condition{}
 }
 
+// OperationOwnerIndexKey returns the OperationOwnerKey index value for an Operation.
+// The namespace is part of the key so same-named Operations in different namespaces never share it.
+func OperationOwnerIndexKey(namespace, name string) string {
+	return namespace + "/" + name
+}
+
 // NewOperationId generates a new operation id which is an UUID.
 func (ou OperationHelper) NewOperationId() string {
 	return strings.Replace(uuid.New().String(), "-", "", -1)

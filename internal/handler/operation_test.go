@@ -7,6 +7,7 @@ import (
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	mockpkg "github.com/Azure/operation-cache-controller/internal/utils/mocks"
+	"github.com/Azure/operation-cache-controller/internal/utils/ptr"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
@@ -19,12 +20,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+const testOperationUID = "test-operation-uid"
+
+func testOperationOwnerRefs() []metav1.OwnerReference {
+	return []metav1.OwnerReference{{
+		APIVersion: v1alpha1.GroupVersion.String(),
+		Kind:       "Operation",
+		Name:       "test-operation",
+		UID:        testOperationUID,
+		Controller: ptr.Of(true),
+	}}
+}
+
 var (
 	emptyOperation = &v1alpha1.Operation{}
 	validOperation = &v1alpha1.Operation{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-operation",
 			Namespace: "default",
+			UID:       testOperationUID,
 		},
 		Spec: v1alpha1.OperationSpec{
 			Applications: []v1alpha1.ApplicationSpec{
@@ -52,8 +66,9 @@ var (
 		Items: []v1alpha1.AppDeployment{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-operation-test-app1",
-					Namespace: "default",
+					Name:            "test-operation-test-app1",
+					Namespace:       "default",
+					OwnerReferences: testOperationOwnerRefs(),
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
 					OpId:         "test-operation",
@@ -67,8 +82,9 @@ var (
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-operation-test-app2",
-					Namespace: "default",
+					Name:            "test-operation-test-app2",
+					Namespace:       "default",
+					OwnerReferences: testOperationOwnerRefs(),
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
 					OpId:      "test-operation",
@@ -86,8 +102,9 @@ var (
 		Items: []v1alpha1.AppDeployment{
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-operation-test-app2",
-					Namespace: "default",
+					Name:            "test-operation-test-app2",
+					Namespace:       "default",
+					OwnerReferences: testOperationOwnerRefs(),
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
 					OpId: "test-operation",
@@ -118,8 +135,9 @@ var (
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-operation-test-app3",
-					Namespace: "default",
+					Name:            "test-operation-test-app3",
+					Namespace:       "default",
+					OwnerReferences: testOperationOwnerRefs(),
 				},
 				Spec: v1alpha1.AppDeploymentSpec{
 					OpId:      "test-operation",
@@ -331,6 +349,63 @@ func TestOperationHandler_EnsureAllAppsAreReady(t *testing.T) {
 			return nil
 		}).AnyTimes()
 		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+
+		adapter := NewOperationHandler(ctx, operation, logger, mockClient, mockRecorder)
+		res, err := adapter.EnsureAllAppsAreReady(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, reconciler.OperationResult{RequeueDelay: reconciler.DefaultRequeueDelay, CancelRequest: true}, res)
+		assert.Equal(t, operation.Status.Phase, v1alpha1.OperationPhaseReconciled)
+	})
+
+	t.Run("same-named operation in another namespace is never listed or deleted", func(t *testing.T) {
+		mockCtrl := gomock.NewController(t)
+		mockClient := mockpkg.NewMockClient(mockCtrl)
+		mockRecorderCtrl := gomock.NewController(t)
+		mockRecorder := mockpkg.NewMockEventRecorder(mockRecorderCtrl)
+		mockStatusWriterCtrl := gomock.NewController(t)
+		mockStatusWriter := mockpkg.NewMockStatusWriter(mockStatusWriterCtrl)
+		mockClient.EXPECT().Status().Return(mockStatusWriter)
+
+		operation := validOperation.DeepCopy()
+		operation.Status.Phase = v1alpha1.OperationPhaseReconciling
+
+		// an AppDeployment owned by a different Operation that has the same name in another namespace
+		foreignOwnerRefs := testOperationOwnerRefs()
+		foreignOwnerRefs[0].UID = "other-namespace-operation-uid"
+		foreignAppDeployment := v1alpha1.AppDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "other-op-id-test-app1",
+				Namespace:       "other-namespace",
+				OwnerReferences: foreignOwnerRefs,
+			},
+			Spec: v1alpha1.AppDeploymentSpec{
+				OpId:      "other-op-id",
+				Provision: newTestJobSpec(),
+				Teardown:  newTestJobSpec(),
+			},
+		}
+
+		appList := emptyAppDeploymentList.DeepCopy()
+		mockClient.EXPECT().List(ctx, appList, gomock.Any()).DoAndReturn(func(ctx context.Context, list *v1alpha1.AppDeploymentList, opts ...client.ListOption) error {
+			listOpts := &client.ListOptions{}
+			listOpts.ApplyOptions(opts)
+			assert.Equal(t, "default", listOpts.Namespace)
+			assert.Equal(t, "default/test-operation", listOpts.FieldSelector.Requirements()[0].Value)
+			// simulate a cache that still returns the foreign object
+			*list = *validAppDeploymentList.DeepCopy()
+			list.Items = append(list.Items, foreignAppDeployment)
+			return nil
+		})
+		scheme := runtime.NewScheme()
+		mockClient.EXPECT().Scheme().Return(scheme).AnyTimes()
+		readyAppDeployment := &v1alpha1.AppDeployment{}
+		readyAppDeployment.Status.Phase = v1alpha1.AppDeploymentPhaseReady
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj runtime.Object, opt ...any) error {
+			*obj.(*v1alpha1.AppDeployment) = *readyAppDeployment
+			return nil
+		}).AnyTimes()
+		mockStatusWriter.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+		// no Delete expectation: deleting the foreign AppDeployment fails the test
 
 		adapter := NewOperationHandler(ctx, operation, logger, mockClient, mockRecorder)
 		res, err := adapter.EnsureAllAppsAreReady(ctx)

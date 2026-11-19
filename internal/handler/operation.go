@@ -231,10 +231,17 @@ func (o *OperationHandler) expectedAppDeployments() []v1alpha1.AppDeployment {
 
 func (o *OperationHandler) listCurrentAppDeployments(ctx context.Context) ([]v1alpha1.AppDeployment, error) {
 	appDeploymentList := &v1alpha1.AppDeploymentList{}
-	if err := o.client.List(ctx, appDeploymentList, client.MatchingFields{v1alpha1.OperationOwnerKey: o.operation.Name}); err != nil {
+	if err := o.client.List(ctx, appDeploymentList,
+		client.InNamespace(o.operation.Namespace),
+		client.MatchingFields{v1alpha1.OperationOwnerKey: ctrlutils.OperationOwnerIndexKey(o.operation.Namespace, o.operation.Name)},
+	); err != nil {
 		return nil, fmt.Errorf("failed to list appDeployments: %w", err)
 	}
-	return lo.Map(appDeploymentList.Items, func(app v1alpha1.AppDeployment, index int) v1alpha1.AppDeployment {
+	// only return AppDeployments this Operation controls; anything else must never be updated or deleted here
+	owned := lo.Filter(appDeploymentList.Items, func(app v1alpha1.AppDeployment, _ int) bool {
+		return metav1.IsControlledBy(&app, o.operation)
+	})
+	return lo.Map(owned, func(app v1alpha1.AppDeployment, index int) v1alpha1.AppDeployment {
 		return v1alpha1.AppDeployment{
 			ObjectMeta: app.ObjectMeta,
 			Spec:       app.Spec,
