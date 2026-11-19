@@ -319,7 +319,7 @@ func TestOperationIndexerFunc(t *testing.T) {
 			},
 		}
 		result := operationIndexerFunc(appDeployment)
-		assert.Equal(t, []string{operationName}, result, "Expected owner name for AppDeployment with Operation controller reference")
+		assert.Equal(t, []string{"default/" + operationName}, result, "Expected namespace-qualified owner key for AppDeployment with Operation controller reference")
 	})
 
 	// Test case 5: AppDeployment with wrong API version owner reference

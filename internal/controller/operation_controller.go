@@ -29,6 +29,7 @@ import (
 
 	"github.com/Azure/operation-cache-controller/api/v1alpha1"
 	"github.com/Azure/operation-cache-controller/internal/handler"
+	ctrlutils "github.com/Azure/operation-cache-controller/internal/utils/controller"
 	"github.com/Azure/operation-cache-controller/internal/utils/reconciler"
 )
 
@@ -97,7 +98,8 @@ func operationIndexerFunc(rawObj client.Object) []string {
 	if owner.APIVersion != v1alpha1.GroupVersion.String() || owner.Kind != "Operation" {
 		return nil
 	}
-	return []string{owner.Name}
+	// owner references are namespace-local, so the owner lives in the AppDeployment's namespace
+	return []string{ctrlutils.OperationOwnerIndexKey(adp.Namespace, owner.Name)}
 }
 
 // SetupWithManager sets up the controller with the Manager.
